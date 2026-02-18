@@ -1,4 +1,4 @@
-# ComfyUI-NunchakuFluxLoraStack&Various tools
+# ComfyUI-NunchakuFluxLoraStack&VariousTools
 
 This repository provides **six independent custom nodes** for ComfyUI:
 
