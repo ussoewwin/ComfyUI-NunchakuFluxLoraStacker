@@ -19,6 +19,8 @@ from .nodes.lora.flux_v2 import GENERATED_NODES as FLUX_NODES, GENERATED_DISPLAY
 from .nodes.lora.standard import GENERATED_NODES as STANDARD_LORA_NODES, GENERATED_DISPLAY_NAMES as STANDARD_LORA_NAMES
 from .nodes.lora.sdnq import GENERATED_NODES as SDNQ_LORA_NODES, GENERATED_DISPLAY_NAMES as SDNQ_LORA_NAMES
 from .nodes.misc_v2 import NODE_CLASS_MAPPINGS as MISC_NODES, NODE_DISPLAY_NAME_MAPPINGS as MISC_NAMES
+from .nodes.load_image_ussoewwin import NODE_CLASS_MAPPINGS as LOAD_IMAGE_NODES, NODE_DISPLAY_NAME_MAPPINGS as LOAD_IMAGE_NAMES
+from .nodes.lora_analyzer_node import NODE_CLASS_MAPPINGS as ANALYZER_NODES, NODE_DISPLAY_NAME_MAPPINGS as ANALYZER_NAMES
 
 # Add version to classes
 NunchakuFluxLoraStack.__version__ = __version__
@@ -36,6 +38,8 @@ NODE_CLASS_MAPPINGS = {
     **STANDARD_LORA_NODES,
     **SDNQ_LORA_NODES,
     **MISC_NODES,
+    **LOAD_IMAGE_NODES,
+    **ANALYZER_NODES,
 }
 
 # Display name mappings
@@ -45,6 +49,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **STANDARD_LORA_NAMES,
     **SDNQ_LORA_NAMES,
     **MISC_NAMES,
+    **LOAD_IMAGE_NAMES,
+    **ANALYZER_NAMES,
 }
 
 # Register JavaScript extensions
