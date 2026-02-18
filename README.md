@@ -1,6 +1,6 @@
 # ComfyUI-NunchakuFluxLoraStacker
 
-This repository provides **five independent custom nodes** for ComfyUI:
+This repository provides **six independent custom nodes** for ComfyUI:
 
 1. **FLUX LoRA Loader V2** (`FluxLoraMultiLoader_10`) - Dynamic multi-LoRA loading with combo box UI for Nunchaku FLUX models
     
@@ -21,6 +21,10 @@ This repository provides **five independent custom nodes** for ComfyUI:
 5. **Fast Groups Bypasser V2** (`FastGroupsBypasserV2`) - Group-based node control utility (ported from [rgthree-comfy](https://github.com/rgthree/rgthree-comfy))
     
     <img src="png/Fast%20Groups%20Bypasser%20V2.png" width="400">
+
+6. **Universal LoRA Analyzer** (`UniversalLoRAAnalyzer`) - Analyze LoRA files (model type, trigger words, base model, Civitai/HuggingFace URLs) without loading into the graph
+    
+    <img src="png/loraana.png" width="400">
 
 ---
 
@@ -143,7 +147,33 @@ This repository now includes multiple V2 nodes with enhanced functionality:
 - `name`: Model patch filename (required)
 - `cpu_offload`: Load model to CPU memory instead of GPU (default: True)
 
-### 3. Fast Groups Bypasser V2 (`FastGroupsBypasserV2`)
+### 3. Universal LoRA Analyzer (`UniversalLoRAAnalyzer`)
+
+    <img src="png/loraana.png" width="400">
+
+Analyzes LoRA files directly and outputs model type, sub-type, trigger words, base model, and distribution URLs (Civitai/HuggingFace) without loading the LoRA into the graph. Supports SDXL (including Pony, Illustrious/Animagine), Flux, Qwen-Image, SD 1.5, and WAN2.2. Uses only Python standard library for URL lookup (no extra dependencies).
+
+#### Features
+- **Model type detection**: Infers main category (SDXL, Flux1, SD 1.5, Qwen-Image, WAN2.2) and sub-category (e.g. Pony, Illustration) from tensor keys and metadata
+- **URL resolution**: Reads Civitai/HuggingFace URLs from metadata; falls back to Civitai API by file hash (via `urllib`, no `requests` required)
+- **Optional inputs**: Manual file path, toggle for training info in the result, and auto-discover for first available LoRA
+
+#### Usage
+1. Add **Universal LoRA Analyzer** to your workflow
+2. Select a LoRA from the dropdown (`lora_name`) or set `manual_path` to a `.safetensors` path
+3. Optionally enable `auto_discover` to use the first found LoRA
+4. Read outputs: `model_type`, `sub_type`, `trigger_words`, `base_model`, `analysis_result`, `lora_info`, `civitai_url`, `hf_url`
+
+#### Parameters
+- `lora_name`: LoRA file from dropdown (required when not using manual path)
+- `manual_path`: Optional path to a LoRA `.safetensors` file
+- `show_training_info`: Include training info in the analysis result (default: on)
+- `auto_discover`: If enabled, use first available LoRA when no selection/path is given
+
+#### Outputs
+- `model_type`, `sub_type`, `trigger_words`, `base_model`, `analysis_result`, `lora_info`, `civitai_url`, `hf_url`
+
+### 4. Fast Groups Bypasser V2 (`FastGroupsBypasserV2`)
 
     <img src="png/Fast%20Groups%20Bypasser%20V2.png" width="400">
 
