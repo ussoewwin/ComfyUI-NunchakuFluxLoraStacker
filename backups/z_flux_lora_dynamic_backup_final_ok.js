@@ -18,15 +18,15 @@ app.registerExtension({
         if (!node.properties) node.properties = {};
         if (node.properties["visibleLoraCount"] === undefined) node.properties["visibleLoraCount"] = 1;
 
-        // ウィジェットキャッシュ初期化
+        // Initialize widget cache
         node.cachedWidgets = {};
         let cacheReady = false;
 
-        // 全ウィジェットをキャッシュに退避
+        // Evacuate all widgets to cache
         const initCache = () => {
             if (cacheReady) return;
             
-            // Python定義の順番: lora_name_1, lora_wt_1, ...
+            // Python definition order: lora_name_1, lora_wt_1, ...
             const all = [...node.widgets];
             
             for (let i = 1; i <= 10; i++) {
@@ -34,10 +34,10 @@ app.registerExtension({
                 const wWt = all.find(w => w.name === `lora_wt_${i}`);
                 if (wName && wWt) {
                     node.cachedWidgets[i] = [wName, wWt];
-                    // 型の念押し
+                    // Enforce types
                     wName.type = "combo";
                     wWt.type = "number";
-                    // 個別サイズ計算は消す（標準に戻す）
+                    // Remove custom computeSize (revert to default)
                     if (wName.computeSize) delete wName.computeSize;
                     if (wWt.computeSize) delete wWt.computeSize;
                 }
@@ -45,14 +45,14 @@ app.registerExtension({
             cacheReady = true;
         };
 
-        // ボタン作成（または取得）
+        // Create or get button
         const ensureButton = () => {
             const btnName = "🔢 Set LoRA Count";
             let btn = node.widgets.find(w => w.name === btnName);
             if (!btn) {
                 btn = node.addWidget("button", btnName, null, () => {});
             }
-            // コールバック設定
+            // Set callback
             btn.callback = () => {
                 const current = node.properties["visibleLoraCount"];
                 const val = prompt("Enter LoRA Count (1-10):", current);
@@ -73,11 +73,10 @@ app.registerExtension({
             const count = parseInt(this.properties["visibleLoraCount"] || 1);
             const btn = ensureButton();
 
-            // 1. 配列を物理的に再構築
-            // ボタンのみにする
+            // 1. Physically rebuild widget array (button only first)
             this.widgets = [btn];
 
-            // 必要な数だけキャッシュから追加
+            // Add from cache for required count only
             for (let i = 1; i <= count; i++) {
                 const pair = this.cachedWidgets[i];
                 if (pair) {
@@ -86,18 +85,18 @@ app.registerExtension({
                 }
             }
 
-            // 2. 高さ計算（余白削除）
-            // 物理的に存在するウィジェットのみで計算
+            // 2. Height calculation (no extra margin)
+            // Only count physically present widgets
             const HEADER_H = 60;
-            const SLOT_H = 54; // 名前(26) + 重み(26) + マージン
+            const SLOT_H = 54; // name(26) + weight(26) + margin
             const PADDING = 20;
             
-            // 厳密に「現在のカウント」分だけの高さを設定
+            // Set height strictly for current count
             const targetH = HEADER_H + (count * SLOT_H) + PADDING;
             
             this.setSize([this.size[0], targetH]);
             
-            // 描画更新
+            // Refresh draw
             if (app.canvas) app.canvas.setDirty(true, true);
         };
 
@@ -107,7 +106,7 @@ app.registerExtension({
             }
         };
 
-        // 初期化キック
+        // Init kick
         setTimeout(() => {
             initCache();
             node.updateLoraSlots();

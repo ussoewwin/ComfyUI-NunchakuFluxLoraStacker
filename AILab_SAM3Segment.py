@@ -83,7 +83,7 @@ def apply_background_color(image, mask_image, background="Alpha", background_col
         hex_color = background_color.lstrip("#")
         r, g, b = int(hex_color[0:2], 16), int(hex_color[2:4], 16), int(hex_color[4:6], 16)
         bg_image = Image.new("RGBA", image.size, (r, g, b, 255))
-        # マスクが白い部分（前景）は元の画像、黒い部分（背景）は背景色
+        # Mask white (foreground) = original image, black (background) = background color
         composite = Image.composite(rgba_image, bg_image, mask_l)
         return composite.convert("RGB")
     return rgba_image

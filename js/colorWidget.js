@@ -126,8 +126,8 @@ app.registerExtension({
     },
 
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        // COLORCODE タイプの入力を認識するためにノード定義を拡張
-        // ComfyUI nodes 2.0 では nodeData.input の構造が異なる可能性があるため、複数の形式に対応
+        // Extend node definition to recognize COLORCODE type inputs
+        // ComfyUI nodes 2.0 may have different nodeData.input structure; support multiple formats
         const inputs = nodeData.input || {};
         const required = inputs.required || {};
         const optional = inputs.optional || {};
@@ -150,33 +150,33 @@ app.registerExtension({
     },
 
     nodeCreated(node) {
-        // COLORCODE タイプのウィジェットを動的に追加し、一番上に配置
+        // Dynamically add COLORCODE type widgets and place them at the top
         const nodeType = node.constructor;
         if (nodeType["@hasColorCode"] && nodeType["@colorCodeInputs"]) {
             const colorCodeInputs = nodeType["@colorCodeInputs"];
             const colorWidgets = [];
             
             for (const inputInfo of colorCodeInputs) {
-                // 既存のウィジェットを確認
+                // Check existing widgets
                 let widget = node.widgets?.find(w => w.name === inputInfo.name);
                 
                 if (!widget) {
-                    // ウィジェットが存在しない場合は作成
+                    // Create widget if it does not exist
                     const colorWidget = AILabColorWidget.COLORCODE(inputInfo.name, inputInfo.default);
                     try {
                         widget = node.addCustomWidget(colorWidget);
                     } catch (e) {
                         console.warn(`[AILab.colorWidget] Failed to add custom widget for ${inputInfo.name}:`, e);
-                        // フォールバック: 通常のウィジェットとして追加を試みる
+                        // Fallback: try adding as normal widget
                         if (node.addWidget) {
                             widget = node.addWidget("text", inputInfo.name, inputInfo.default);
                         }
                     }
                 } else {
-                    // 既存のウィジェットを COLORCODE タイプに変換
+                    // Convert existing widget to COLORCODE type
                     if (widget.type !== 'COLORCODE') {
                         const colorWidget = AILabColorWidget.COLORCODE(inputInfo.name, widget.value || inputInfo.default);
-                        // 既存のウィジェットを置き換え
+                        // Replace existing widget
                         const index = node.widgets.indexOf(widget);
                         if (index !== -1) {
                             node.widgets[index] = colorWidget;
@@ -190,9 +190,9 @@ app.registerExtension({
                 }
             }
             
-            // カラーパレットウィジェットを一番上に移動
+            // Move color palette widgets to the top
             if (colorWidgets.length > 0 && node.widgets) {
-                // 既存のウィジェット配列からカラーパレットウィジェットを削除
+                // Remove color palette widgets from existing widget array
                 for (const colorWidget of colorWidgets) {
                     const index = node.widgets.indexOf(colorWidget);
                     if (index !== -1) {
@@ -200,10 +200,10 @@ app.registerExtension({
                     }
                 }
                 
-                // カラーパレットウィジェットを一番上に追加
+                // Add color palette widgets at the top
                 node.widgets.unshift(...colorWidgets);
                 
-                // キャンバスを更新
+                // Refresh canvas
                 if (app.canvas) {
                     app.canvas.setDirty(true, true);
                 }

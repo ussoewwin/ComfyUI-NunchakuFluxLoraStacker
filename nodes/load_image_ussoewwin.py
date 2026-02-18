@@ -60,15 +60,15 @@ class LoadImageUssoewwin:
             image = np.array(image).astype(np.float32) / 255.0
             image = torch.from_numpy(image)[None,]
             
-            # マスクを抽出
+            # Extract mask
             if 'A' in i.getbands():
                 mask = np.array(i.getchannel('A')).astype(np.float32) / 255.0
                 mask = 1. - torch.from_numpy(mask)
-                mask = (mask > 0.1).float()  # 二値化（0.1より上は強制的に1）
+                mask = (mask > 0.1).float()  # Binarize (values > 0.1 become 1)
             elif i.mode == 'P' and 'transparency' in i.info:
                 mask = np.array(i.convert('RGBA').getchannel('A')).astype(np.float32) / 255.0
                 mask = 1. - torch.from_numpy(mask)
-                mask = (mask > 0.1).float()  # 二値化（0.1より上は強制的に1）
+                mask = (mask > 0.1).float()  # Binarize (values > 0.1 become 1)
             else:
                 mask = torch.zeros((64,64), dtype=torch.float32, device="cpu")
             
