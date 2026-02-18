@@ -1,6 +1,6 @@
 [project]
-name = "ComfyUI-NunchakuFluxLoraStacker"
-version = "1.25"
+name = "ComfyUI-NunchakuFluxLoraStack&VariousTools"
+version = "1.26"
 description = "ComfyUI custom nodes: FLUX LoRA Loader V2 (Nunchaku FLUX1), LoRA Stacker V2 (Universal), SDNQ LoRA Stacker V2 (SDNQ quantized models), Model Patch Loader (Qwen Image＆Z Image Turbo Diffsynth ControlNet), All with dynamic 10-slot UI. Fast Groups Bypasser V2 (group control utility). All nodes support ComfyUI Nodes2.0."
 authors = [{ name = "ussoewwin" }]
 license = { file = "LICENSE" }
@@ -11,6 +11,6 @@ Repository = "https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker"
 
 [tool.comfy]
 PublisherId = "ussoewwin"
-DisplayName = "ComfyUI-NunchakuFluxLoraStacker and any stackers for ComfyUI Nodes2.0"
+DisplayName = "ComfyUI-NunchakuFluxLoraStack&VariousTools"
 Icon = "https://raw.githubusercontent.com/nunchaku-tech/nunchaku/96615bd93a1f0d2cf98039fddecfec43ce34cc96/assets/nunchaku.svg"
 
