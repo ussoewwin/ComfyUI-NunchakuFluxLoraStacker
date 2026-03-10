@@ -1,0 +1,115 @@
+**Nunchaku 1.1.0 LoRA Issue — Complete Explanation**
+
+**What happened**
+
+1. ComfyUI-nunchaku was updated from 1.0.2 to 1.1.0.
+2. The Nunchaku package itself still worked on 1.1.0, but after updating the ComfyUI-nunchaku nodes to 1.1.0, LoRAs stopped affecting the final image.
+3. Users reported that applying LoRAs did not change the output image.
+4. Testing showed the cause was on the node side (ComfyUI-nunchaku); the package (nunchaku) was fine.
+
+**Cause**
+
+1. ComfyUI-nunchaku 1.1.0 changed how the LoRA nodes clone the MODEL (ModelPatcher).
+2. In 1.0.2, the transformer was temporarily removed and `copy.deepcopy(model)` was used, so ComfyUI’s ModelPatcher state (model_options, hooks, injections, attachments, etc.) was fully preserved.
+3. In 1.1.0, the implementation switched to “rebuild a new ModelPatcher with copy_with_ctx()”, which dropped that internal state.
+4. As a result, LoRA parameters were applied to the model, but missing ComfyUI internal state meant they were not reflected in the final image.
+5. Additionally, with ComfyUI 0.7.0’s FLUX model, model_config was changed to return None for __deepcopy__, so copy.deepcopy(model) could raise TypeError: 'NoneType' object is not callable.
+
+**Approach**
+
+The fix was implemented on the Stacker side (ComfyUI-NunchakuFluxLoraStacker).
+
+Reasons:
+1. Fixing ComfyUI-nunchaku directly could be overwritten by future updates.
+2. Upstream behavior was unclear.
+3. Fixing in the Stacker keeps behavior correct regardless of ComfyUI-nunchaku updates.
+
+**Modified files**
+
+1. ComfyUI/custom_nodes/ComfyUI-NunchakuFluxLoraStacker/nodes/lora/flux.py
+2. ComfyUI/custom_nodes/ComfyUI-NunchakuFluxLoraStacker/nodes/lora/flux_v2.py
+
+**Code (example from flux_v2.py)**
+
+Before (problematic):
+```
+ret_model = model  # Return input MODEL as-is (destructive)
+actual_wrapper.loras = []  # Mutate existing MODEL
+for name, strength in loras_formatted:
+    path = folder_paths.get_full_path_or_raise("loras", name)
+    actual_wrapper.loras.append((path, strength))
+return (model,)
+```
+
+After (safe):
+```
+# IMPORTANT:
+# Return a NEW MODEL object (do not mutate the input model in-place).
+# ComfyUI 0.7.x model_config objects may return None for __deepcopy__ via __getattr__,
+# which makes copy.deepcopy(model) crash. Use ModelPatcher.clone() + shallow-copy of the inner model instead.
+ret_model = model
+ret_wrapper = actual_wrapper
+if hasattr(model, "clone") and wrapper_class == "ComfyFluxWrapper":
+    ret_model = model.clone()  # Preserve ModelPatcher state
+    ret_model.model = copy.copy(model.model)  # Shallow copy to separate inner model
+
+    transformer = actual_wrapper.model
+    new_wrapper = ComfyFluxWrapper(
+        transformer,
+        config=getattr(actual_wrapper, "config", None),
+        pulid_pipeline=getattr(actual_wrapper, "pulid_pipeline", None),
+        customized_forward=getattr(actual_wrapper, "customized_forward", None),
+        forward_kwargs=getattr(actual_wrapper, "forward_kwargs", None),
+    )
+    # OptimizedModule wrapper handling
+    orig_dm = model.model.diffusion_model
+    if hasattr(orig_dm, "_orig_mod"):
+        outer = copy.copy(orig_dm)
+        outer._orig_mod = new_wrapper
+        ret_model.model.diffusion_model = outer
+        ret_wrapper = outer._orig_mod
+    else:
+        ret_model.model.diffusion_model = new_wrapper
+        ret_wrapper = new_wrapper
+
+# Set LoRA list on the new wrapper
+if wrapper_class == "ComfyFluxWrapper":
+    ret_wrapper.loras = []
+    for name, strength in loras_formatted:
+        path = folder_paths.get_full_path_or_raise("loras", name)
+        ret_wrapper.loras.append((path, strength))
+
+return (ret_model,)
+```
+
+**What this does**
+
+1. **Using ModelPatcher.clone()**  
+   ModelPatcher.clone() is ComfyUI’s intended way to duplicate a model; it correctly copies patches, model_options, hooks, injections, attachments, etc. That keeps ComfyUI state intact after applying LoRAs.
+
+2. **Shallow copy with copy.copy()**  
+   copy.deepcopy() is avoided because ComfyUI 0.7.0’s model_config can return None for __deepcopy__. copy.copy() only copies object references, so it avoids that issue. Using ret_model.model = copy.copy(model.model) still separates the inner model so the original MODEL is not mutated.
+
+3. **Creating a new ComfyFluxWrapper**  
+   A new ComfyFluxWrapper instance lets the LoRA list (loras) be managed independently, so the input MODEL is not changed and a new MODEL object is returned.
+
+4. **OptimizedModule wrapper**  
+   When the model is optimized (e.g. torch.compile), an outer wrapper with _orig_mod may exist. In that case the outer wrapper is shallow-copied and _orig_mod is replaced with the new wrapper.
+
+5. **Non-destructive input MODEL**  
+   By returning a new MODEL instead of mutating the input, multiple LoRA nodes can be chained safely in the same workflow.
+
+**Notes**
+
+1. Mixing “main LoRA node” (from ComfyUI-nunchaku) and “Stacker LoRA node” (from ComfyUI-NunchakuFluxLoraStacker) in one workflow can lead to double application or wrong order of LoRAs.
+2. Safer to use one or the other consistently (recommended: Stacker nodes).
+
+**Verification**
+
+1. Confirmed that with LoRA applied, the image clearly changes.
+2. Confirmed correct behavior with Stacker’s fix for both ComfyUI-nunchaku 1.0.2 and 1.1.0.
+3. Confirmed that the ComfyUI 0.7.0 TypeError is resolved.
+
+**Summary**
+
+The root cause was “loss of ComfyUI internal state due to the changed MODEL cloning method.” Switching the Stacker to ModelPatcher.clone() plus shallow copy fixed the issue without depending on upstream changes.
