@@ -321,18 +321,8 @@ class ModelPatchLoaderCustom:
                               }}
     RETURN_TYPES = ("MODEL_PATCH",)
     FUNCTION = "load_model_patch"
-        logging.info(f"[ModelPatchLoaderCustom] loading patch '{name}' from '{model_patch_path}', cpu_offload={cpu_offload}")
-        logging.info(f"[ModelPatchLoaderCustom] loading patch '{name}' from '{model_patch_path}', cpu_offload={cpu_offload}")
     EXPERIMENTAL = True
-
-        # CPUオフロード設定に応じて各デバイスを決定
     CATEGORY = "advanced/loaders"
-            # すべてCPUメモリ上で運用
-
-            # 通常はComfy本体と同じGPU＋オフロード設定
-        return (model_patcher,)
-
-        logging.info(f"[ModelPatchLoaderCustom] devices - load_device={load_device}, offload_device={offload_device}, model_device={model_device}")
 
     def load_model_patch(self, name, cpu_offload):
         model_patch_path = folder_paths.get_full_path_or_raise("model_patches", name)
