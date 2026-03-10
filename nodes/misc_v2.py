@@ -1,8 +1,9 @@
+import logging
+import logging
 """
 Misc V2 nodes for ComfyUI Beta 2.0 (Desktop).
 """
 
-import logging
 import torch
 from torch import nn
 import folder_paths
@@ -12,6 +13,86 @@ import comfy.model_management
 import comfy.ldm.common_dit
 import comfy.latent_formats
 import comfy.ldm.lumina.controlnet
+
+
+def _model_patch_cpu_offload_apply():
+    """ZImageControlPatch: cpu_offload 時はモデルをGPUに載せずCPUで計算しVRAMを抑える"""
+    import comfy_extras.nodes_model_patch as _np
+    _ZImageControlPatch = _np.ZImageControlPatch
+    _orig_to = _ZImageControlPatch.to
+    _orig_call = _ZImageControlPatch.__call__
+
+    def _to(self, device_or_dtype):
+        if isinstance(device_or_dtype, torch.device) and device_or_dtype.type == "cuda":
+            if getattr(self.model_patch, "load_device", None) and comfy.model_management.is_device_cpu(self.model_patch.load_device):
+                return self
+        return _orig_to(self, device_or_dtype)
+
+    def _call(self, kwargs):
+        if not (getattr(self.model_patch, "load_device", None) and comfy.model_management.is_device_cpu(self.model_patch.load_device)):
+            return _orig_call(self, kwargs)
+        x = kwargs.get("x")
+        img = kwargs.get("img")
+        img_input = kwargs.get("img_input")
+        txt = kwargs.get("txt")
+        pe = kwargs.get("pe")
+        vec = kwargs.get("vec")
+        block_index = kwargs.get("block_index")
+        block_type = kwargs.get("block_type", "")
+        spacial_compression = self.vae.spacial_compression_encode()
+        if self.encoded_image is None or self.encoded_image_size != (x.shape[-2] * spacial_compression, x.shape[-1] * spacial_compression):
+            image_scaled = None
+            if self.image is not None:
+                image_scaled = comfy.utils.common_upscale(self.image.movedim(-1, 1), x.shape[-1] * spacial_compression, x.shape[-2] * spacial_compression, "area", "center").movedim(1, -1)
+                self.encoded_image_size = (image_scaled.shape[-3], image_scaled.shape[-2])
+            inpaint_scaled = None
+            if self.inpaint_image is not None:
+                inpaint_scaled = comfy.utils.common_upscale(self.inpaint_image.movedim(-1, 1), x.shape[-1] * spacial_compression, x.shape[-2] * spacial_compression, "area", "center").movedim(1, -1)
+                self.encoded_image_size = (inpaint_scaled.shape[-3], inpaint_scaled.shape[-2])
+            loaded_models = comfy.model_management.loaded_models(only_currently_used=True)
+            self.encoded_image = self.encode_latent_cond(image_scaled, inpaint_scaled)
+            comfy.model_management.load_models_gpu(loaded_models)
+        cnet_blocks = self.model_patch.model.n_control_layers
+        div = round(30 / cnet_blocks)
+        cnet_index = (block_index // div)
+        cnet_index_float = (block_index / div)
+        kwargs.pop("img")
+        kwargs.pop("txt")
+        if cnet_index_float > (cnet_blocks - 1):
+            self.temp_data = None
+            return kwargs
+        dev = img.device
+        if self.temp_data is None or self.temp_data[0] > cnet_index:
+            enc = self.encoded_image.to("cpu").to(img.dtype)
+            txt_cpu = txt.to("cpu")
+            pe_cpu = pe.to("cpu") if pe is not None else pe
+            vec_cpu = vec.to("cpu") if vec is not None else vec
+            if block_type == "noise_refiner":
+                self.temp_data = (-3, (None, self.model_patch.model(txt_cpu, enc, pe_cpu, vec_cpu)))
+            else:
+                self.temp_data = (-1, (None, self.model_patch.model(txt_cpu, enc, pe_cpu, vec_cpu)))
+        if block_type == "noise_refiner":
+            next_layer = self.temp_data[0] + 1
+            inp = img_input[:, :self.temp_data[1][1].shape[1]].to("cpu")
+            self.temp_data = (next_layer, self.model_patch.model.forward_noise_refiner_block(block_index, self.temp_data[1][1], inp, None, pe.to("cpu") if pe is not None else pe, vec.to("cpu") if vec is not None else vec))
+            if self.temp_data[1][0] is not None:
+                img[:, :self.temp_data[1][0].shape[1]] += (self.temp_data[1][0].to(dev) * self.strength)
+        else:
+            while self.temp_data[0] < cnet_index and (self.temp_data[0] + 1) < cnet_blocks:
+                next_layer = self.temp_data[0] + 1
+                inp = img_input[:, :self.temp_data[1][1].shape[1]].to("cpu")
+                self.temp_data = (next_layer, self.model_patch.model.forward_control_block(next_layer, self.temp_data[1][1], inp, None, pe.to("cpu") if pe is not None else pe, vec.to("cpu") if vec is not None else vec))
+            if cnet_index_float == self.temp_data[0]:
+                img[:, :self.temp_data[1][0].shape[1]] += (self.temp_data[1][0].to(dev) * self.strength)
+                if cnet_blocks == self.temp_data[0] + 1:
+                    self.temp_data = None
+        return kwargs
+
+    _ZImageControlPatch.to = _to
+    _ZImageControlPatch.__call__ = _call
+
+
+_model_patch_cpu_offload_apply()
 
 class FastGroupsBypasserV2:
     """
@@ -156,14 +237,20 @@ class SigLIPMultiFeatProjModel(torch.nn.Module):
             dtype
         )
 
+        logging.info(f"[ModelPatchLoaderCustom] loading patch '{name}' from '{model_patch_path}', cpu_offload={cpu_offload}")
         # Process mid-level features (layer -11)
         mid_embedding = self._process_layer_features(
+        # CPUオフロード設定に応じて各デバイスを決定
             siglip_outputs[1],
             self.mid_embedding_linear,
+            # すべてCPUメモリ上で運用
             self.mid_layer_norm,
+            # 通常はComfy本体と同じGPU＋オフロード設定
             self.mid_projection,
             dtype
         )
+        logging.info(f"[ModelPatchLoaderCustom] devices - load_device={load_device}, offload_device={offload_device}, model_device={model_device}")
+
 
         # Process low-level features (layer -20)
         low_embedding = self._process_layer_features(
@@ -234,23 +321,29 @@ class ModelPatchLoaderCustom:
                               }}
     RETURN_TYPES = ("MODEL_PATCH",)
     FUNCTION = "load_model_patch"
+        logging.info(f"[ModelPatchLoaderCustom] loading patch '{name}' from '{model_patch_path}', cpu_offload={cpu_offload}")
+        logging.info(f"[ModelPatchLoaderCustom] loading patch '{name}' from '{model_patch_path}', cpu_offload={cpu_offload}")
     EXPERIMENTAL = True
 
+        # CPUオフロード設定に応じて各デバイスを決定
     CATEGORY = "advanced/loaders"
+            # すべてCPUメモリ上で運用
+
+            # 通常はComfy本体と同じGPU＋オフロード設定
+        return (model_patcher,)
+
+        logging.info(f"[ModelPatchLoaderCustom] devices - load_device={load_device}, offload_device={offload_device}, model_device={model_device}")
 
     def load_model_patch(self, name, cpu_offload):
         model_patch_path = folder_paths.get_full_path_or_raise("model_patches", name)
         sd = comfy.utils.load_torch_file(model_patch_path, safe_load=True)
         dtype = comfy.utils.weight_dtype(sd)
 
-        # Select device based on CPU offload setting
         if cpu_offload:
-            # CPU offload: Load all models to CPU (main memory)
             load_device = torch.device("cpu")
             offload_device = torch.device("cpu")
             model_device = torch.device("cpu")
         else:
-            # Normal mode: Use GPU
             load_device = comfy.model_management.get_torch_device()
             offload_device = comfy.model_management.unet_offload_device()
             model_device = comfy.model_management.unet_offload_device()
@@ -324,9 +417,7 @@ class ModelPatchLoaderCustom:
 
             sd = filtered_sd
 
-        # Load with strict=False (only load matching keys)
         model.load_state_dict(sd, strict=False)
-        # Set load_device and offload_device
         model = comfy.model_patcher.ModelPatcher(model, load_device=load_device, offload_device=offload_device)
         return (model,)
 
