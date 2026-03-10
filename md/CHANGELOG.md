@@ -2,6 +2,7 @@
 
 ## Release History
 
+- v1.27 – Documentation and repo updates: Added `md/` with CHANGELOG and manuals (English); README links to Changelog for release history ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.27))
 - v1.26 – Model Patch Loader: Fixed Z-Image ControlNet matmul shape error; infer control_in_dim from checkpoint and include checkpoint-only keys in load state_dict so embedder weights load under lazy init ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.26))
 - [v1.25](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.25) – Universal LoRA Analyzer, Load Image node, SAM3 integration; README node docs and structure updates ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.25))
 - [v1.24](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.24) – Fixed LoRA not working issue with ComfyUI-nunchaku 1.1.0: Addressed the problem where LoRAs were not being applied to the final image output after updating to ComfyUI-nunchaku 1.1.0. The fix ensures proper MODEL object cloning and state preservation.
