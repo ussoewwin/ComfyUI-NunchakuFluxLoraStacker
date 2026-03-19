@@ -5,6 +5,7 @@ LoRA composition, and advanced caching strategies.
 """
 
 from typing import Callable
+import functools
 
 import torch
 from comfy.ldm.common_dit import pad_to_patch_size
@@ -273,31 +274,69 @@ class ComfyFluxWrapper(nn.Module):
                 print(f"DEBUG: Attempting to restore {len(pulid_weights)} PuLID weights...")
                 if pulid_weights:
                     try:
-                        # Create a combined state dict with LoRA and PuLID weights
-                        combined_state_dict = {**composed_lora, **pulid_weights}
-                        print(f"DEBUG: Combined state dict has {len(combined_state_dict)} keys")
-                        model.load_state_dict(combined_state_dict, strict=False)
-                        print(f"DEBUG: Successfully restored PuLID weights using load_state_dict")
+                        # Restore only PuLID weights.
+                        # Avoid mixed-device/mixed-dtype `load_state_dict` which can trigger async CUDA failures.
+                        if hasattr(model, 'transformer_blocks') and len(model.transformer_blocks) > 0:
+                            first_block = model.transformer_blocks[0]
+                            pulid_ca = getattr(first_block, 'pulid_ca', None)
+                            if pulid_ca is not None:
+                                for name, param in pulid_ca.named_parameters():
+                                    key = f"transformer_blocks.0.pulid_ca.{name}"
+                                    if key in pulid_weights:
+                                        src = pulid_weights[key]
+                                        if src.device != param.device or src.dtype != param.dtype:
+                                            src = src.to(device=param.device, dtype=param.dtype, non_blocking=True)
+                                        if not src.is_contiguous():
+                                            src = src.contiguous()
+                                        param.data.copy_(src)
+
+                        if hasattr(model, '_original_blocks') and len(model._original_blocks) > 0:
+                            orig_first_block = model._original_blocks[0]
+                            pulid_ca = getattr(orig_first_block, 'pulid_ca', None)
+                            if pulid_ca is not None:
+                                for name, param in pulid_ca.named_parameters():
+                                    key = f"_original_blocks.0.pulid_ca.{name}"
+                                    if key in pulid_weights:
+                                        src = pulid_weights[key]
+                                        if src.device != param.device or src.dtype != param.dtype:
+                                            src = src.to(device=param.device, dtype=param.dtype, non_blocking=True)
+                                        if not src.is_contiguous():
+                                            src = src.contiguous()
+                                        param.data.copy_(src)
+
+                        print(f"DEBUG: Successfully restored PuLID weights via copy_")
                     except Exception as e:
                         print(f"Warning: Failed to restore PuLID weights after LoRA update: {e}")
-                        # Try to restore PuLID weights manually
+                        # Fallback: try restoring PuLID weights manually with best-effort alignment.
                         print(f"DEBUG: Attempting manual restoration...")
                         if hasattr(model, 'transformer_blocks') and len(model.transformer_blocks) > 0:
                             first_block = model.transformer_blocks[0]
-                            if hasattr(first_block, 'pulid_ca') and first_block.pulid_ca is not None:
+                            pulid_ca = getattr(first_block, 'pulid_ca', None)
+                            if pulid_ca is not None:
                                 print(f"DEBUG: Manually restoring to transformer_blocks.0.pulid_ca")
-                                for name, param in first_block.pulid_ca.named_parameters():
+                                for name, param in pulid_ca.named_parameters():
                                     key = f"transformer_blocks.0.pulid_ca.{name}"
                                     if key in pulid_weights:
-                                        param.data.copy_(pulid_weights[key])
+                                        src = pulid_weights[key]
+                                        if src.device != param.device or src.dtype != param.dtype:
+                                            src = src.to(device=param.device, dtype=param.dtype, non_blocking=True)
+                                        if not src.is_contiguous():
+                                            src = src.contiguous()
+                                        param.data.copy_(src)
                         if hasattr(model, '_original_blocks') and len(model._original_blocks) > 0:
                             orig_first_block = model._original_blocks[0]
-                            if hasattr(orig_first_block, 'pulid_ca') and orig_first_block.pulid_ca is not None:
+                            pulid_ca = getattr(orig_first_block, 'pulid_ca', None)
+                            if pulid_ca is not None:
                                 print(f"DEBUG: Manually restoring to _original_blocks.0.pulid_ca")
-                                for name, param in orig_first_block.pulid_ca.named_parameters():
+                                for name, param in pulid_ca.named_parameters():
                                     key = f"_original_blocks.0.pulid_ca.{name}"
                                     if key in pulid_weights:
-                                        param.data.copy_(pulid_weights[key])
+                                        src = pulid_weights[key]
+                                        if src.device != param.device or src.dtype != param.dtype:
+                                            src = src.to(device=param.device, dtype=param.dtype, non_blocking=True)
+                                        if not src.is_contiguous():
+                                            src = src.contiguous()
+                                        param.data.copy_(src)
                 else:
                     print(f"DEBUG: No PuLID weights to restore")
 
@@ -305,6 +344,7 @@ class ComfyFluxWrapper(nn.Module):
         controlnet_single_block_samples = None if control is None else [y.to(x.dtype) for y in control["output"]]
 
         if self.pulid_pipeline is not None:
+            self._ensure_pulid_ca_device_dtype()
             self.model.transformer_blocks[0].pulid_ca = self.pulid_pipeline.pulid_ca
 
         if getattr(model, "residual_diff_threshold_multi", 0) != 0 or getattr(model, "_is_cached", False):
@@ -336,6 +376,7 @@ class ComfyFluxWrapper(nn.Module):
                         controlnet_single_block_samples=controlnet_single_block_samples,
                     ).sample
                 else:
+                    self._ensure_pulid_embedding_device_dtype()
                     out = self.customized_forward(
                         model,
                         hidden_states=img,
@@ -363,6 +404,7 @@ class ComfyFluxWrapper(nn.Module):
                     controlnet_single_block_samples=controlnet_single_block_samples,
                 ).sample
             else:
+                self._ensure_pulid_embedding_device_dtype()
                 out = self.customized_forward(
                     model,
                     hidden_states=img,
@@ -392,6 +434,69 @@ class ComfyFluxWrapper(nn.Module):
 
         self._prev_timestep = timestep_float
         return out
+
+    def _ensure_pulid_embedding_device_dtype(self):
+        """
+        If `customized_forward` is a `functools.partial` that carries PuLID tensors,
+        ensure those tensors match the Nunchaku block device/dtype to avoid backend
+        invalid-argument errors that can surface later as async CUDA failures.
+        """
+        # Strictly gate: only apply this fix for PuLID integration.
+        if self.pulid_pipeline is None:
+            return
+        cf = self.customized_forward
+        if not isinstance(cf, functools.partial):
+            return
+        # Only for PuLID's forward wrapper.
+        try:
+            if getattr(cf.func, "__name__", None) != "pulid_forward":
+                return
+        except Exception:
+            return
+        kw = cf.keywords or {}
+        emb = kw.get("id_embeddings", None)
+        if not isinstance(emb, torch.Tensor):
+            return
+        try:
+            block0 = self.model.transformer_blocks[0]
+            target_device = getattr(block0, "device", emb.device)
+            target_dtype = getattr(block0, "dtype", emb.dtype)
+        except Exception:
+            return
+
+        if emb.device != target_device or emb.dtype != target_dtype or not emb.is_contiguous():
+            kw["id_embeddings"] = emb.to(device=target_device, dtype=target_dtype, non_blocking=True).contiguous()
+
+    def _ensure_pulid_ca_device_dtype(self):
+        """
+        Ensure PuLID's `pulid_ca` module matches the Nunchaku block execution device/dtype.
+        This is a narrow, PuLID-only safeguard against mixed-device/dtype modules.
+        """
+        if self.pulid_pipeline is None:
+            return
+        try:
+            block0 = self.model.transformer_blocks[0]
+        except Exception:
+            return
+
+        target_device = getattr(block0, "device", None)
+        target_dtype = getattr(block0, "dtype", None)
+        if target_device is None or target_dtype is None:
+            return
+
+        pulid_ca = getattr(self.pulid_pipeline, "pulid_ca", None)
+        if pulid_ca is None:
+            return
+
+        try:
+            p = next(pulid_ca.parameters(), None)
+        except Exception:
+            p = None
+        if p is None:
+            return
+
+        if p.device != target_device or p.dtype != target_dtype:
+            pulid_ca.to(device=target_device, dtype=target_dtype)
 
     def forward_without_lora_update(
         self,
@@ -451,6 +556,7 @@ class ComfyFluxWrapper(nn.Module):
         controlnet_single_block_samples = None if control is None else [y.to(x.dtype) for y in control["output"]]
 
         if self.pulid_pipeline is not None:
+            self._ensure_pulid_ca_device_dtype()
             self.model.transformer_blocks[0].pulid_ca = self.pulid_pipeline.pulid_ca
 
         if getattr(model, "residual_diff_threshold_multi", 0) != 0 or getattr(model, "_is_cached", False):
@@ -482,6 +588,7 @@ class ComfyFluxWrapper(nn.Module):
                         controlnet_single_block_samples=controlnet_single_block_samples,
                     ).sample
                 else:
+                    self._ensure_pulid_embedding_device_dtype()
                     out = self.customized_forward(
                         model,
                         hidden_states=img,
@@ -509,6 +616,7 @@ class ComfyFluxWrapper(nn.Module):
                     controlnet_single_block_samples=controlnet_single_block_samples,
                 ).sample
             else:
+                self._ensure_pulid_embedding_device_dtype()
                 out = self.customized_forward(
                     model,
                     hidden_states=img,
