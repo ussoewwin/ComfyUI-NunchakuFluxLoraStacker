@@ -2,6 +2,7 @@
 
 ## Release History
 
+- v1.28 – Nunchaku Flux1 PulID: Released mitigations for errors affecting the upstream Nunchaku Flux1 PulID node; details are published in the release notes ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.28))
 - v1.27 – Model Patch Loader: Fix for ComfyUI-update-induced bug (CPU offload / CoreModelPatcher) ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.27))
 - v1.26 – Model Patch Loader: Fixed Z-Image ControlNet matmul shape error; infer control_in_dim from checkpoint and include checkpoint-only keys in load state_dict so embedder weights load under lazy init ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.26))
 - [v1.25](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.25) – Universal LoRA Analyzer, Load Image node, SAM3 integration; README node docs and structure updates ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.25))
