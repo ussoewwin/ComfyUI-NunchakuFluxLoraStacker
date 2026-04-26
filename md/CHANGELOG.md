@@ -2,6 +2,7 @@
 
 ## Release History
 
+- v1.29 – LoRA Loader V2 update: enabled negative LoRA strength values (min/max: -100.0 to 100.0) across FLUX LoRA Loader V2, LoRA Stacker V2, and SDNQ LoRA Stacker V2 to match standard ComfyUI behavior ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.29))
 - v1.28 – Nunchaku Flux1 PulID: Released mitigations for errors affecting the upstream Nunchaku Flux1 PulID node; details are published in the release notes ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.28))
 - v1.27 – Model Patch Loader: Fix for ComfyUI-update-induced bug (CPU offload / CoreModelPatcher) ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.27))
 - v1.26 – Model Patch Loader: Fixed Z-Image ControlNet matmul shape error; infer control_in_dim from checkpoint and include checkpoint-only keys in load state_dict so embedder weights load under lazy init ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.26))
