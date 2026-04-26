@@ -38,7 +38,7 @@ class FluxLoraMultiLoaderBase:
         for i in range(1, cls._slot_count + 1):
             inputs["optional"][f"lora_name_{i}"] = (loras, {"tooltip": f"LoRA {i} filename"})
             # Restored step to 0.001 to allow decimals, kept min/max removed to avoid slider interference
-            inputs["optional"][f"lora_wt_{i}"] = ("FLOAT", {"default": 1.0, "step": 0.001, "tooltip": f"LoRA {i} Strength"})
+            inputs["optional"][f"lora_wt_{i}"] = ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.001, "tooltip": f"LoRA {i} Strength"})
             
             # Restored code as commented out blocks as requested
             # inputs["required"][f"model_str_{i}"] = ("FLOAT", {"default": 1.0, "min": -100.0, "max": 100.0, "step": 0.01, "tooltip": f"LoRA {i} Model Strength"})
