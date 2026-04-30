@@ -1,6 +1,6 @@
 # ComfyUI-NunchakuFluxLoraStack-and-VariousTools
 
-This repository provides **six independent custom nodes** for ComfyUI:
+This repository provides **seven independent custom nodes** for ComfyUI:
 
 1. **FLUX LoRA Loader V2** (`FluxLoraMultiLoader_10`) - Dynamic multi-LoRA loading with combo box UI for Nunchaku FLUX models
     
@@ -25,6 +25,10 @@ This repository provides **six independent custom nodes** for ComfyUI:
 6. **Universal LoRA Analyzer** (`UniversalLoRAAnalyzer`) - Analyze LoRA files (model type, trigger words, base model, Civitai/HuggingFace URLs) without loading into the graph
     
     <img src="png/loraana.png" width="400">
+
+7. **Color Filter** (`ColorFilter`) - Strip monochrome / black-and-white wording from caption text produced by vision-language tagging (e.g. Florence-2, WD14 Tagger) before feeding prompts to downstream nodes
+    
+    <img src="png/colorfilter.png" width="400">
 
 ---
 
@@ -160,6 +164,32 @@ This repository now includes multiple V2 nodes with enhanced functionality:
 1. Add **Fast Groups Bypasser V2** node
 2. Configure filters via properties or right-click menu
 3. Toggle groups using generated checkbox widgets
+
+---
+
+## Color Filter (`ColorFilter`)
+
+### Purpose
+
+Image captioning and tagging nodes (such as **Florence-2** or **WD14 Tagger**) often emit phrases like “black and white”, “monochrome”, or “白黒” when they describe the photo. Those tokens can leak into text-to-image prompts and bias the sampler toward grayscale output. **Color Filter** is a small text utility that removes those expressions from a string so downstream workflows see cleaner conditioning text.
+
+### When to use it
+
+- After **Florence-2** (or similar VL caption) nodes, before string preview / prompt assembly.
+- After **WD14 Tagger** (or other taggers) when tags include black-and-white-related vocabulary you do not want in the positive prompt.
+- Any multiline `STRING` where you want monochrome-related wording stripped automatically.
+
+### Inputs and outputs
+
+| Port | Type | Description |
+|------|------|-------------|
+| `text` | `STRING` (multiline) | Raw caption or tag string from upstream analysis nodes. |
+| `filtered_text` | `STRING` | Same text with monochrome-related phrases removed; consecutive whitespace is normalized to single spaces (newlines become spaces). |
+
+### Behaviour notes
+
+- Matching uses regular expressions (word-boundary aware for common English terms; Japanese phrases are matched as substrings). Typical removals include e.g. `black and white`, `monochrome`, `grayscale`, `白黒`, `モノクロ`, `セピア`, and similar variants listed in `nodes/color_filter/color_filter.py`.
+- The node lives under category **Text/Filter** in the ComfyUI menu.
 
 ---
 
