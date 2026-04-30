@@ -2,6 +2,8 @@
 
 ## Release History
 
+- v1.30 – Color Filter: Added `ColorFilter` node (`nodes/color_filter/`) to remove monochrome / black-and-white wording from caption and tag strings (e.g. Florence-2, WD14 Tagger); README section and screenshot. ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.30))
+
 - v1.29 – LoRA Loader V2 update: enabled negative LoRA strength values (min/max: -100.0 to 100.0) across FLUX LoRA Loader V2, LoRA Stacker V2, and SDNQ LoRA Stacker V2 to match standard ComfyUI behavior ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.29))
 
 - v1.28 – Nunchaku Flux1 PulID: Released mitigations for errors affecting the upstream Nunchaku Flux1 PulID node; details are published in the release notes ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.28))
