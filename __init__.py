@@ -21,6 +21,7 @@ from .nodes.lora.sdnq import GENERATED_NODES as SDNQ_LORA_NODES, GENERATED_DISPL
 from .nodes.misc_v2 import NODE_CLASS_MAPPINGS as MISC_NODES, NODE_DISPLAY_NAME_MAPPINGS as MISC_NAMES
 from .nodes.load_image_ussoewwin import NODE_CLASS_MAPPINGS as LOAD_IMAGE_NODES, NODE_DISPLAY_NAME_MAPPINGS as LOAD_IMAGE_NAMES
 from .nodes.lora_analyzer_node import NODE_CLASS_MAPPINGS as ANALYZER_NODES, NODE_DISPLAY_NAME_MAPPINGS as ANALYZER_NAMES
+from .nodes.color_filter import NODE_CLASS_MAPPINGS as COLOR_FILTER_NODES, NODE_DISPLAY_NAME_MAPPINGS as COLOR_FILTER_NAMES
 
 # Add version to classes
 NunchakuFluxLoraStack.__version__ = __version__
@@ -40,6 +41,7 @@ NODE_CLASS_MAPPINGS = {
     **MISC_NODES,
     **LOAD_IMAGE_NODES,
     **ANALYZER_NODES,
+    **COLOR_FILTER_NODES,
 }
 
 # Display name mappings
@@ -51,6 +53,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **MISC_NAMES,
     **LOAD_IMAGE_NAMES,
     **ANALYZER_NAMES,
+    **COLOR_FILTER_NAMES,
 }
 
 # Register JavaScript extensions
