@@ -171,7 +171,7 @@ This repository now includes multiple V2 nodes with enhanced functionality:
 
 ### Purpose
 
-Image captioning and tagging nodes (such as **Florence-2** or **WD14 Tagger**) often emit phrases like “black and white”, “monochrome”, or “白黒” when they describe the photo. Those tokens can leak into text-to-image prompts and bias the sampler toward grayscale output. **Color Filter** is a small text utility that removes those expressions from a string so downstream workflows see cleaner conditioning text.
+Image captioning and tagging nodes (such as **Florence-2** or **WD14 Tagger**) often emit phrases like “black and white” or “monochrome” when they describe the photo. Those tokens can leak into text-to-image prompts and bias the sampler toward grayscale output. **Color Filter** is a small text utility that removes those expressions from a string so downstream workflows see cleaner conditioning text.
 
 ### When to use it
 
@@ -188,7 +188,7 @@ Image captioning and tagging nodes (such as **Florence-2** or **WD14 Tagger**) o
 
 ### Behaviour notes
 
-- Matching uses regular expressions (word-boundary aware for common English terms; Japanese phrases are matched as substrings). Typical removals include e.g. `black and white`, `monochrome`, `grayscale`, `白黒`, `モノクロ`, `セピア`, and similar variants listed in `nodes/color_filter/color_filter.py`.
+- Matching uses regular expressions (word-boundary aware for common English terms; non-Latin monochrome-related literals are matched as substrings). Typical English removals include e.g. `black and white`, `monochrome`, and `grayscale`; the full pattern set is defined in `nodes/color_filter/color_filter.py`.
 - The node lives under category **Text/Filter** in the ComfyUI menu.
 
 ---
