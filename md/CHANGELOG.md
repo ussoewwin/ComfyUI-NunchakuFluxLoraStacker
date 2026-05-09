@@ -2,6 +2,8 @@
 
 ## Release History
 
+- v1.31 – Florence-2: Integrated Florence-2 VLM nodes under `nodes/florence2/` (Sage Attention 2/3 and Transformers 5.x loader path; upstream lineage [kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2) merged into this repo). README node overview (11 nodes), Florence-2 section, screenshot `png/Florence2.png`, Credits, and License note for MIT subtree `nodes/florence2/LICENSE`. ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.31))
+
 - v1.30 – Color Filter: Added `ColorFilter` node (`nodes/color_filter/`) to remove monochrome / black-and-white wording from caption and tag strings (e.g. Florence-2, WD14 Tagger); README section and screenshot. ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.30))
 
 - v1.29 – LoRA Loader V2 update: enabled negative LoRA strength values (min/max: -100.0 to 100.0) across FLUX LoRA Loader V2, LoRA Stacker V2, and SDNQ LoRA Stacker V2 to match standard ComfyUI behavior ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.29))
