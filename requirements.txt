@@ -9,3 +9,11 @@
 
 # External dependencies
 nunchaku>=1.0.0
+
+# Florence-2 captioning / VLM (nodes/florence2)
+transformers>=4.39.0,!=4.50.*
+matplotlib
+timm
+pillow>=10.2.0
+peft
+accelerate>=0.26.0
