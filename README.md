@@ -1,6 +1,6 @@
 # ComfyUI-NunchakuFluxLoraStack-and-VariousTools
 
-This repository provides **seven independent custom nodes** for ComfyUI:
+This repository provides **eleven custom nodes** for ComfyUI:
 
 1. **FLUX LoRA Loader V2** (`FluxLoraMultiLoader_10`) - Dynamic multi-LoRA loading with combo box UI for Nunchaku FLUX models
     
@@ -29,6 +29,10 @@ This repository provides **seven independent custom nodes** for ComfyUI:
 7. **Color Filter** (`ColorFilter`) - Strip monochrome / black-and-white wording from caption text produced by vision-language tagging (e.g. Florence-2, WD14 Tagger) before feeding prompts to downstream nodes
     
     <img src="png/colorfilter.png" width="400">
+
+8. **Florence-2** (four nodes: `DownloadAndLoadFlorence2Model`, `DownloadAndLoadFlorence2Lora`, `Florence2ModelLoader`, `Florence2Run`) — Load Florence-2–family vision-language checkpoints (Hugging Face download or local `models/LLM`), optional PEFT LoRA, then run captioning, OCR, DocVQA, grounding, segmentation, and prompt-generation tasks; outputs include `FL2MODEL`, `PEFTLORA`, annotated images, masks, and strings.
+
+    <img src="png/Florence2.png" width="400">
 
 ---
 
@@ -167,6 +171,45 @@ This repository now includes multiple V2 nodes with enhanced functionality:
 
 ---
 
+## Florence-2 nodes
+
+Vision-language nodes built from the Florence-2 model stack bundled under `nodes/florence2/`. They appear under the ComfyUI category **Florence2**.
+
+### Upstream and integration
+
+The Florence-2 implementation here started from **[kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2)**. A fork was maintained separately to add **Sage Attention 3** support and to track **current Transformers** (5.x) APIs; that work is now **merged into this repository** under `nodes/florence2/` so you do not need a second custom-node repo—fewer repositories to clone, update, and pin in `requirements.txt`.
+
+### Compatibility
+
+- **Transformers 5.7**: This integration is tested and maintained against **Transformers 5.x** (including **5.7**). The custom loader path (`load_model` in `nodes/florence2/nodes.py`) is used when `transformers >= 5.0`, matching current `PreTrainedModel` / `dtype` APIs and Florence-2 processor behaviour. Use the `requirements.txt` line `transformers>=4.39.0,!=4.50.*` as the minimum pin; upgrading to **5.7** is supported for these nodes.
+- **Sage Attention 3**: Loader nodes expose attention modes **`sage_attention_2`** and **`sage_attention_3`** in addition to `sdpa`, `eager`, and `flash_attention_2`. When **Transformers ≥ 5.0** is installed, the custom Florence-2 attention modules can replace SDPA layers for Sage modes (see `nodes/florence2/modeling_florence2.py` and `nodes/florence2/docs/FIX_04_sage_attention_support.md`). If Sage is selected but Transformers is older than 5.0, the node falls back to **SDPA** and logs a warning.
+
+### Model locations
+
+- **HF download path**: `DownloadAndLoadFlorence2Model` saves weights under **`ComfyUI/models/LLM/<short_repo_name>/`** (e.g. `Florence-2-base` for `microsoft/Florence-2-base`).
+- **Local path**: `Florence2ModelLoader` lists subfolders already present under **`ComfyUI/models/LLM`**.
+
+### Node reference
+
+| Node | Role |
+|------|------|
+| **DownloadAndLoadFlorence2Model** | Choose a preset Hugging Face repo, `fp16` / `bf16` / `fp32`, and **attention** backend; optional **`PEFTLORA`** input and optional `.bin` → `.safetensors` conversion. Returns **`florence2_model`** (`FL2MODEL`). |
+| **DownloadAndLoadFlorence2Lora** | Downloads the fixed PixelProse LoRA repo for chaining into the loader. Returns **`lora`** (`PEFTLORA`). |
+| **Florence2ModelLoader** | Same outputs as the HF downloader but **`model`** is a local directory name under `models/LLM`. |
+| **Florence2Run** | Consumes **`IMAGE`**, **`FL2MODEL`**, **`text_input`**, and **`task`** (e.g. `caption`, `detailed_caption`, `ocr`, `docvqa`, `region_proposal`, …). Optional sampling controls, mask selection string, and seed. Returns **`image`**, **`mask`**, **`caption`**, **`data`** (`JSON`). |
+
+### Requirements (Florence-2)
+
+Install Python deps from the repository root (includes Florence-2 and shared stack):
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Florence-2–specific packages include **transformers**, **accelerate**, **peft**, **timm**, **matplotlib**, and **Pillow**, in addition to **nunchaku** used elsewhere in this pack.
+
+---
+
 ## Color Filter (`ColorFilter`)
 
 ### Purpose
@@ -201,6 +244,7 @@ See [Changelog](md/CHANGELOG.md) for the full release history.
 
 - Dynamic UI implementation based on [efficiency-nodes-comfyui](https://github.com/jags111/efficiency-nodes-comfyui)
 - Fast Groups Bypasser V2 ported from [rgthree-comfy](https://github.com/rgthree/rgthree-comfy)
+- Florence-2 nodes trace to [kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2); extended here for Sage Attention 3 and Transformers 5.x, then integrated under `nodes/florence2/` (see **Upstream and integration** above)
 
 ## License
 
