@@ -9,7 +9,7 @@
 
 ## 发布历史
 
-- v1.39 – AMD / ROCm nunchaku 导入：合并 [PR #6](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/pull/6) 的 import 防护，使 `nunchaku` 导入失败时整包仍可加载；后续将 FLUX 注册限制为 `_NUNCHAKU_AVAILABLE`、不对 `standard` / `standard_v3` 包宽 try/except，并以明确错误替代 `compose_lora = None` ([发行说明](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.39))
+- v1.39 – AMD / ROCm nunchaku 导入：合并 [PR #6](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/pull/6) 的 import 防护，使 `nunchaku` 导入失败时整包仍可加载；后续将 FLUX 注册限制为 `_NUNCHAKU_AVAILABLE`、不对 `standard` / `standard_v3` 包宽 try/except，并以明确错误替代 `compose_lora = None` ([发行说明](v1.39.md))
 
 - v1.38 – CCSR 依赖：在 `requirements.txt` 中补充 CCSR 所需包（`pytorch-lightning` 及相关依赖），并新增 `install.py`，由 ComfyUI-Manager 自动安装—避免缺少 `pytorch_lightning` 时整个自定义节点包加载失败 ([发行说明](v1.38.md))
 
