@@ -22,9 +22,14 @@ except ImportError:
     NunchakuFluxTransformer2dModel = None
     cache_context = None
     create_cache_context = None
-    compose_lora = None
     load_state_dict_in_safetensors = None
     _NUNCHAKU_AVAILABLE = False
+
+    def compose_lora(*_args, **_kwargs):
+        raise RuntimeError(
+            "nunchaku is required for FLUX LoRA composition, "
+            "but it is not installed or failed to import."
+        )
 
 
 class ComfyFluxWrapper(nn.Module):

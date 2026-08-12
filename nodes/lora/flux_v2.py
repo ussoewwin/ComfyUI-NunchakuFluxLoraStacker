@@ -121,8 +121,11 @@ class FluxLoraMultiLoaderBase:
             if loras_formatted:
                 try:
                     from nunchaku.lora.flux.compose import compose_lora
-                except ImportError:
-                    compose_lora = None
+                except ImportError as e:
+                    raise RuntimeError(
+                        "nunchaku is required to apply LoRAs to NunchakuFluxTransformer2dModel, "
+                        "but it is not installed or failed to import."
+                    ) from e
                 tuples = [(folder_paths.get_full_path_or_raise("loras", n), s) for n, s in loras_formatted]
                 if len(tuples) == 1:
                     ret_wrapper.update_lora_params(tuples[0][0])

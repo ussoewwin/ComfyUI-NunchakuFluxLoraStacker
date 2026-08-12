@@ -13,33 +13,22 @@ __version__ = "1.38"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# Import nodes - nunchaku-dependent imports are guarded for AMD/non-NVIDIA systems
-try:
+# Gate FLUX registration on nunchaku availability (not on whether flux modules import).
+# wrappers.flux swallows ImportError so flux node modules can still import without nunchaku;
+# registering those modules would expose broken FLUX nodes.
+from .wrappers.flux import _NUNCHAKU_AVAILABLE
+
+if _NUNCHAKU_AVAILABLE:
     from .nodes.lora.flux import NunchakuFluxLoraStack
     from .nodes.lora.flux_v2 import GENERATED_NODES as FLUX_NODES, GENERATED_DISPLAY_NAMES as FLUX_NAMES
-    _FLUX_AVAILABLE = True
-except Exception as e:
-    logger.warning(f"[ROCm] Skipping nunchaku FLUX nodes: {e}")
+else:
+    logger.warning("[ROCm] Skipping nunchaku FLUX nodes: nunchaku is not available")
     NunchakuFluxLoraStack = None
     FLUX_NODES = {}
     FLUX_NAMES = {}
-    _FLUX_AVAILABLE = False
 
-try:
-    from .nodes.lora.standard import GENERATED_NODES as STANDARD_LORA_NODES, GENERATED_DISPLAY_NAMES as STANDARD_LORA_NAMES
-except Exception as e:
-    logger.warning(f"[ROCm] Skipping standard LoRA nodes: {e}")
-    STANDARD_LORA_NODES = {}
-    STANDARD_LORA_NAMES = {}
-
-try:
-    from .nodes.lora.standard_v3 import GENERATED_NODES as STANDARD_LORA_V3_NODES, GENERATED_DISPLAY_NAMES as STANDARD_LORA_V3_NAMES
-except Exception as e:
-    logger.warning(f"[ROCm] Skipping standard LoRA v3 nodes: {e}")
-    STANDARD_LORA_V3_NODES = {}
-    STANDARD_LORA_V3_NAMES = {}
-
-
+from .nodes.lora.standard import GENERATED_NODES as STANDARD_LORA_NODES, GENERATED_DISPLAY_NAMES as STANDARD_LORA_NAMES
+from .nodes.lora.standard_v3 import GENERATED_NODES as STANDARD_LORA_V3_NODES, GENERATED_DISPLAY_NAMES as STANDARD_LORA_V3_NAMES
 from .nodes.lora.sdnq import GENERATED_NODES as SDNQ_LORA_NODES, GENERATED_DISPLAY_NAMES as SDNQ_LORA_NAMES
 from .nodes.misc_v2 import NODE_CLASS_MAPPINGS as MISC_NODES, NODE_DISPLAY_NAME_MAPPINGS as MISC_NAMES
 from .nodes.load_image_ussoewwin import NODE_CLASS_MAPPINGS as LOAD_IMAGE_NODES, NODE_DISPLAY_NAME_MAPPINGS as LOAD_IMAGE_NAMES

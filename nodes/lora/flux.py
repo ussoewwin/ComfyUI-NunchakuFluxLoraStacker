@@ -272,8 +272,11 @@ class NunchakuFluxLoraStack:
             if loras_formatted:
                 try:
                     from nunchaku.lora.flux.compose import compose_lora as nunchaku_compose_lora
-                except ImportError:
-                    nunchaku_compose_lora = None
+                except ImportError as e:
+                    raise RuntimeError(
+                        "nunchaku is required to apply LoRAs to NunchakuFluxTransformer2dModel, "
+                        "but it is not installed or failed to import."
+                    ) from e
 
                 lora_tuples = []
                 for lora_name, lora_strength in loras_formatted:
