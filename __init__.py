@@ -13,11 +13,33 @@ __version__ = "1.38"
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-# Import nodes
-from .nodes.lora.flux import NunchakuFluxLoraStack
-from .nodes.lora.flux_v2 import GENERATED_NODES as FLUX_NODES, GENERATED_DISPLAY_NAMES as FLUX_NAMES
-from .nodes.lora.standard import GENERATED_NODES as STANDARD_LORA_NODES, GENERATED_DISPLAY_NAMES as STANDARD_LORA_NAMES
-from .nodes.lora.standard_v3 import GENERATED_NODES as STANDARD_LORA_V3_NODES, GENERATED_DISPLAY_NAMES as STANDARD_LORA_V3_NAMES
+# Import nodes - nunchaku-dependent imports are guarded for AMD/non-NVIDIA systems
+try:
+    from .nodes.lora.flux import NunchakuFluxLoraStack
+    from .nodes.lora.flux_v2 import GENERATED_NODES as FLUX_NODES, GENERATED_DISPLAY_NAMES as FLUX_NAMES
+    _FLUX_AVAILABLE = True
+except Exception as e:
+    logger.warning(f"[ROCm] Skipping nunchaku FLUX nodes: {e}")
+    NunchakuFluxLoraStack = None
+    FLUX_NODES = {}
+    FLUX_NAMES = {}
+    _FLUX_AVAILABLE = False
+
+try:
+    from .nodes.lora.standard import GENERATED_NODES as STANDARD_LORA_NODES, GENERATED_DISPLAY_NAMES as STANDARD_LORA_NAMES
+except Exception as e:
+    logger.warning(f"[ROCm] Skipping standard LoRA nodes: {e}")
+    STANDARD_LORA_NODES = {}
+    STANDARD_LORA_NAMES = {}
+
+try:
+    from .nodes.lora.standard_v3 import GENERATED_NODES as STANDARD_LORA_V3_NODES, GENERATED_DISPLAY_NAMES as STANDARD_LORA_V3_NAMES
+except Exception as e:
+    logger.warning(f"[ROCm] Skipping standard LoRA v3 nodes: {e}")
+    STANDARD_LORA_V3_NODES = {}
+    STANDARD_LORA_V3_NAMES = {}
+
+
 from .nodes.lora.sdnq import GENERATED_NODES as SDNQ_LORA_NODES, GENERATED_DISPLAY_NAMES as SDNQ_LORA_NAMES
 from .nodes.misc_v2 import NODE_CLASS_MAPPINGS as MISC_NODES, NODE_DISPLAY_NAME_MAPPINGS as MISC_NAMES
 from .nodes.load_image_ussoewwin import NODE_CLASS_MAPPINGS as LOAD_IMAGE_NODES, NODE_DISPLAY_NAME_MAPPINGS as LOAD_IMAGE_NAMES
@@ -29,7 +51,8 @@ from .nodes.CCSR import NODE_CLASS_MAPPINGS as CCSR_NODES, NODE_DISPLAY_NAME_MAP
 from .nodes.resolution_selector import NODE_CLASS_MAPPINGS as RESOLUTION_SELECTOR_NODES, NODE_DISPLAY_NAME_MAPPINGS as RESOLUTION_SELECTOR_NAMES
 
 # Add version to classes
-NunchakuFluxLoraStack.__version__ = __version__
+if NunchakuFluxLoraStack is not None:
+    NunchakuFluxLoraStack.__version__ = __version__
 for node_class in FLUX_NODES.values():
     node_class.__version__ = __version__
 for node_class in STANDARD_LORA_NODES.values():
@@ -45,7 +68,7 @@ for node_class in CCSR_NODES.values():
 
 # Node mappings
 NODE_CLASS_MAPPINGS = {
-    "FluxLoraMultiLoader": NunchakuFluxLoraStack,
+    **({} if NunchakuFluxLoraStack is None else {"FluxLoraMultiLoader": NunchakuFluxLoraStack}),
     **FLUX_NODES,
     **STANDARD_LORA_NODES,
     **STANDARD_LORA_V3_NODES,
@@ -62,7 +85,7 @@ NODE_CLASS_MAPPINGS = {
 
 # Display name mappings
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "FluxLoraMultiLoader": "FLUX LoRA Multi Loader (Legacy - Do Not Use in V2)",
+    **({} if NunchakuFluxLoraStack is None else {"FluxLoraMultiLoader": "FLUX LoRA Multi Loader (Legacy - Do Not Use in V2)"}),
     **FLUX_NAMES,
     **STANDARD_LORA_NAMES,
     **STANDARD_LORA_V3_NAMES,

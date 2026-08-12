@@ -152,7 +152,9 @@ class StandardLoraLoaderBase:
                     print(f"[SDNQ LoRA Stacker] ✓ LoRA {i} loaded: {lora_selection} (strength: {lora_strength})")
                     
                 except Exception as e:
+                    import traceback
                     print(f"[SDNQ LoRA Stacker] ⚠️  Failed to load LoRA {i} ({lora_selection}): {e}")
+                    traceback.print_exc()
                     continue
         
         # Set all adapters with their weights

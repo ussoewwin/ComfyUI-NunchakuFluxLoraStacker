@@ -12,10 +12,19 @@ from comfy.ldm.common_dit import pad_to_patch_size
 from einops import rearrange, repeat
 from torch import nn
 
-from nunchaku import NunchakuFluxTransformer2dModel
-from nunchaku.caching.fbcache import cache_context, create_cache_context
-from nunchaku.lora.flux.compose import compose_lora
-from nunchaku.utils import load_state_dict_in_safetensors
+try:
+    from nunchaku import NunchakuFluxTransformer2dModel
+    from nunchaku.caching.fbcache import cache_context, create_cache_context
+    from nunchaku.lora.flux.compose import compose_lora
+    from nunchaku.utils import load_state_dict_in_safetensors
+    _NUNCHAKU_AVAILABLE = True
+except ImportError:
+    NunchakuFluxTransformer2dModel = None
+    cache_context = None
+    create_cache_context = None
+    compose_lora = None
+    load_state_dict_in_safetensors = None
+    _NUNCHAKU_AVAILABLE = False
 
 
 class ComfyFluxWrapper(nn.Module):

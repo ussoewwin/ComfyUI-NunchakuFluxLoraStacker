@@ -270,7 +270,10 @@ class NunchakuFluxLoraStack:
             print("DEBUG: Using NunchakuFluxTransformer2dModel LoRA application method")
 
             if loras_formatted:
-                from nunchaku.lora.flux.compose import compose_lora as nunchaku_compose_lora
+                try:
+                    from nunchaku.lora.flux.compose import compose_lora as nunchaku_compose_lora
+                except ImportError:
+                    nunchaku_compose_lora = None
 
                 lora_tuples = []
                 for lora_name, lora_strength in loras_formatted:
