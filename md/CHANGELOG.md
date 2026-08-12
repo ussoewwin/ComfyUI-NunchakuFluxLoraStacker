@@ -9,6 +9,8 @@
 
 ## Release History
 
+- v1.39 – AMD / ROCm nunchaku import: Merged [PR #6](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/pull/6) import guards so the pack still loads when `nunchaku` fails to import; follow-up gates FLUX registration on `_NUNCHAKU_AVAILABLE`, leaves `standard` / `standard_v3` unwrapped, and raises a clear error instead of setting `compose_lora = None` ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.39))
+
 - v1.38 – CCSR dependencies: Added CCSR packages (`pytorch-lightning` and related deps) to `requirements.txt`, and added `install.py` so ComfyUI-Manager installs them automatically—prevents the whole pack from failing to load when `pytorch_lightning` is missing ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v1.38))
 
 - v1.37 – Nunchaku Resolution Selector: Added **Nunchaku Resolution Selector** (`NunchakuResolutionSelector`) under `ussoewwin/resolution`—pick width/height from Flux1-style aspect presets (or custom size), emit hires dimensions, an empty **16-channel** latent, and an info string. Preset list expanded from ControlAltAI Megapixel Calculator ratios (1.0 MP / 1.5 MP High). Documented in README and zhmd README with screenshot.
