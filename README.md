@@ -9,6 +9,8 @@
 
 This repository provides **thirteen custom nodes** for ComfyUI:
 
+On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot import), **Nunchaku FLUX–oriented features stay disabled** so this pack can still load and the **other nodes remain usable**. Guarding nunchaku imports so a missing or failed nunchaku install does not take down the whole pack was the idea of the pull-request author **[0xDELUXA](https://github.com/0xDELUXA)** ([PR #6](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/pull/6)).
+
 1. **FLUX LoRA Loader V2** (`FluxLoraMultiLoader_10`) - Dynamic multi-LoRA loading with combo box UI for Nunchaku FLUX models
     
     <img src="png/FLUX%20LoRA%20Loader%20V2.png" width="400">

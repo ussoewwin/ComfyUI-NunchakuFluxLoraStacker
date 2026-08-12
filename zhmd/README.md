@@ -9,6 +9,8 @@
 
 本仓库提供 **十三个** ComfyUI 自定义节点：
 
+在 **AMD / ROCm**（以及其他无法导入官方 `nunchaku` 包的环境）下，**面向 Nunchaku FLUX 的功能会被禁用**，本包仍可加载，**其余节点可继续使用**。对 nunchaku 导入做保护、避免因缺少或导入失败而导致整包无法加载——这一思路来自 PR 提案者 **[0xDELUXA](https://github.com/0xDELUXA)**（[PR #6](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/pull/6)）。
+
 1. **FLUX LoRA Loader V2** (`FluxLoraMultiLoader_10`) - 用于 Nunchaku FLUX 模型的动态多 LoRA 加载，带下拉框 UI
     
     <img src="../png/FLUX%20LoRA%20Loader%20V2.png" width="400">
