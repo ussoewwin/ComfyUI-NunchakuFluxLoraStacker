@@ -224,7 +224,7 @@ app.registerExtension({
 
             let index = 0;
             
-            let editColorsBtn = this.widgets.find(w => w.name === "🎨 Edit Match Colors");
+            let editColorsBtn = (this.widgets || []).find(w => w.name === "🎨 Edit Match Colors");
             if (!editColorsBtn) {
                 editColorsBtn = this.addWidget("button", "🎨 Edit Match Colors", null, () => {
                     const currentValue = this.properties[PROPERTY_MATCH_COLORS] || "";
@@ -235,7 +235,7 @@ app.registerExtension({
                     }
                 });
             }
-            if (editColorsBtn && this.widgets[index] !== editColorsBtn) {
+            if (editColorsBtn && this.widgets && this.widgets[index] !== editColorsBtn) {
                 const oldIndex = this.widgets.findIndex(w => w === editColorsBtn);
                 if (oldIndex !== -1) {
                     this.widgets.splice(index, 0, this.widgets.splice(oldIndex, 1)[0]);
@@ -243,7 +243,7 @@ app.registerExtension({
             }
             index++;
             
-            let editTitleBtn = this.widgets.find(w => w.name === "📝 Edit Match Title");
+            let editTitleBtn = (this.widgets || []).find(w => w.name === "📝 Edit Match Title");
             if (!editTitleBtn) {
                 editTitleBtn = this.addWidget("button", "📝 Edit Match Title", null, () => {
                     const currentValue = this.properties[PROPERTY_MATCH_TITLE] || "";
@@ -254,7 +254,7 @@ app.registerExtension({
                     }
                 });
             }
-            if (editTitleBtn && this.widgets[index] !== editTitleBtn) {
+            if (editTitleBtn && this.widgets && this.widgets[index] !== editTitleBtn) {
                 const oldIndex = this.widgets.findIndex(w => w === editTitleBtn);
                 if (oldIndex !== -1) {
                     this.widgets.splice(index, 0, this.widgets.splice(oldIndex, 1)[0]);
@@ -386,7 +386,7 @@ app.registerExtension({
                 this.widgets.forEach(w => {
                     if (w.type === "toggle" && w.name.startsWith("Enable: ")) {
                         const title = w.name.substring(8);
-                        const g = groups.find(grp => (grp.title || "Group") === title);
+                        const g = (groups || []).find(grp => (grp.title || "Group") === title);
                         if (g) setGroupMode.call(this, g, w.value);
                     }
                 });
