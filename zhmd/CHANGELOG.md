@@ -9,7 +9,7 @@
 
 ## 发布历史
 
-- v2.0.0 — Model Patch Loader ConvRot INT8：**Model Patch Loader**（`ModelPatchLoaderCustom`）现在可加载 comfy 原生 **ConvRot INT8** 量化的 Z-Image ControlNet 检查点（如 `Z-Image-Turbo-Fun-Controlnet-Union-2.1-lite-2601-8steps_convrot_int8.safetensors`）。通过 `comfy_quant` 元数据自动检测 INT8，以 BF16 构建模块图并由 `mixed_precision_ops` 接入量化权重，因此权重始终以 **INT8 形式保存在内存中**，推理走 comfy-kitchen 的 `int8_linear` 内核（含在线 ConvRot 激活旋转）。GPU 加载与 CPU 卸载均支持；BF16 检查点保持原有路径。修复了 `Only Tensors of floating point and complex dtype can require gradients` 崩溃。技术移植自 [HSWQ ControlNet Loader](https://github.com/ussoewwin/ComfyUI-HSWQ-Loader-and-Tools)（[发行说明](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v2.0.0)）
+- v2.0.0 — Model Patch Loader ConvRot INT8：**Model Patch Loader**（`ModelPatchLoaderCustom`）现在可加载 comfy 原生 **ConvRot INT8** 量化的 Z-Image ControlNet 检查点（如 `Z-Image-Turbo-Fun-Controlnet-Union-2.1-lite-2601-8steps_convrot_int8.safetensors`）。通过 `comfy_quant` 元数据自动检测 INT8，以 BF16 构建模块图并由 `mixed_precision_ops` 接入量化权重，因此权重始终以 **INT8 形式保存在内存中**，推理走 comfy-kitchen 的 `int8_linear` 内核（含在线 ConvRot 激活旋转）。GPU 加载与 CPU 卸载均支持；BF16 检查点保持原有路径。修复了 `Only Tensors of floating point and complex dtype can require gradients` 崩溃（[发行说明](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v2.0.0)）
 
 - v1.39 – AMD / ROCm nunchaku 导入：合并 [PR #6](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/pull/6) 的 import 防护，使 `nunchaku` 导入失败时整包仍可加载；后续将 FLUX 注册限制为 `_NUNCHAKU_AVAILABLE`、不对 `standard` / `standard_v3` 包宽 try/except，并以明确错误替代 `compose_lora = None` ([发行说明](v1.39.md))
 
