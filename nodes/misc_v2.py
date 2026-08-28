@@ -378,26 +378,27 @@ class ModelPatchLoaderCustom:
             offload_device = comfy.model_management.unet_offload_device()
             model_device = comfy.model_management.unet_offload_device()
 
+        int8_checkpoint = _has_int8_comfy_quant(sd)
+
+        if int8_checkpoint:
+            # ConvRot INT8 checkpoint (any model-patch type): build the module
+            # graph in BF16 and let MixedPrecisionOps.Linear._load_from_state_dict
+            # consume "<layer>.comfy_quant" / "<layer>.weight_scale", attaching
+            # an INT8 QuantizedTensor (TensorWiseINT8Layout, ConvRot online
+            # rotation) to every quantized Linear so weights stay INT8 in memory.
+            dtype = torch.bfloat16
+            operations = _int8_mixed_precision_ops()
+            logging.info("[ModelPatchLoaderCustom] INT8 ComfyQuant detected in '%s': loading with MixedPrecisionOps (weights stay INT8 / ConvRot)", name)
+        else:
+            operations = comfy.ops.manual_cast
+
         if 'controlnet_blocks.0.y_rms.weight' in sd:
             additional_in_dim = sd["img_in.weight"].shape[1] - 64
-            model = QwenImageBlockWiseControlNet(additional_in_dim=additional_in_dim, device=model_device, dtype=dtype, operations=comfy.ops.manual_cast)
+            model = QwenImageBlockWiseControlNet(additional_in_dim=additional_in_dim, device=model_device, dtype=dtype, operations=operations)
         elif 'feature_embedder.mid_layer_norm.bias' in sd:
             sd = comfy.utils.state_dict_prefix_replace(sd, {"feature_embedder.": ""}, filter_keys=True)
-            model = SigLIPMultiFeatProjModel(device=model_device, dtype=dtype, operations=comfy.ops.manual_cast)
+            model = SigLIPMultiFeatProjModel(device=model_device, dtype=dtype, operations=operations)
         elif 'control_all_x_embedder.2-1.weight' in sd: # alipai z image fun controlnet
-            int8_checkpoint = _has_int8_comfy_quant(sd)
-            if int8_checkpoint:
-                # ConvRot INT8 checkpoint: keys are already in the comfy-native
-                # layout (attention.qkv / attention.out), so z_image_convert is
-                # a no-op and can break quantized key grouping. Build the module
-                # graph in BF16; MixedPrecisionOps attaches INT8 QuantizedTensor
-                # weights (TensorWiseINT8Layout, ConvRot online rotation) during
-                # load_state_dict, so weights stay INT8 in memory.
-                dtype = torch.bfloat16
-                operations = _int8_mixed_precision_ops()
-                logging.info("[ModelPatchLoaderCustom] INT8 ComfyQuant detected in '%s': loading with MixedPrecisionOps (weights stay INT8 / ConvRot)", name)
-            else:
-                operations = comfy.ops.manual_cast
             if not int8_checkpoint:
                 sd = z_image_convert(sd)
             config = {}
