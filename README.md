@@ -185,10 +185,6 @@ Universal LoRA stacker for **standard ComfyUI `MODEL` + `CLIP` pipelines** (SDXL
 - `lora_name_X`: LoRA filename or `None` (optional)
 - `lora_strength_X`: Strength for slot X (optional, default 1.0)
 
-#### Screenshot
-
-<img src="png/LoRA%20Stacker%20V3.png" width="400">
-
 ### 3. Model Patch Loader (`ModelPatchLoaderCustom`)
 
 #### Features
