@@ -27,7 +27,7 @@
     
     <img src="../png/SDNQ%20LoRA%20Stacker%20V2.png" width="400">
 
-5. **Model Patch Loader** (`ModelPatchLoaderCustom`) - 加载模型补丁（ControlNet、特征投影器等），支持 CPU 卸载
+5. **Model Patch Loader** (`ModelPatchLoaderCustom`) - 加载模型补丁（ControlNet、特征投影器等），支持 CPU 卸载，并支持 ConvRot INT8
     
     <img src="../png/Model%20Patch%20Loader.png" width="400">
 
@@ -185,10 +185,6 @@ V1 节点 (`NunchakuFluxLoraStack`) 仍然可用，原因如下：
 - `lora_name_X`：LoRA 文件名或 `None`（可选）
 - `lora_strength_X`：槽位 X 的强度（可选，默认 1.0）
 
-#### 截图
-
-<img src="../png/LoRA%20Stacker%20V3.png" width="400">
-
 ### 3. Model Patch Loader (`ModelPatchLoaderCustom`)
 
 #### 功能
@@ -196,6 +192,7 @@ V1 节点 (`NunchakuFluxLoraStack`) 仍然可用，原因如下：
 - **多种模型类型**: 支持 QwenImage ControlNet、SigLIP 特征投影器和 ZImage ControlNet
 - **自动检测**: 根据 state dict 键自动检测并加载正确的模型类型
 - **灵活部署**: 在 CPU (内存) 或 GPU (VRAM) 加载之间选择
+- **ConvRot INT8 支持**: 自动检测带有 comfy 原生 `int8_tensorwise`（ConvRot）量化的 ZImage ControlNet 检查点（基于 `comfy_quant` 元数据），并使用 `mixed_precision_ops` 加载；权重始终以 INT8 形式保存在内存中，运算通过 comfy-kitchen 的 `int8_linear` 内核（含在线 ConvRot 激活旋转）执行。GPU 加载与 CPU 卸载均支持
 
 #### 使用方法
 1. 将模型补丁文件 (`.safetensors` 或 `.ckpt`) 放入 `model_patches` 文件夹
@@ -207,7 +204,7 @@ V1 节点 (`NunchakuFluxLoraStack`) 仍然可用，原因如下：
 #### 支持的模型类型
 - **QwenImageBlockWiseControlNet**: 用于 Qwen 图像生成模型的 ControlNet
 - **SigLIPMultiFeatProjModel**: 用于风格特征的多特征投影模型
-- **ZImage_Control**: Z-Image 格式 ControlNet
+- **ZImage_Control**: Z-Image 格式 ControlNet（BF16 与 ConvRot INT8 版本）
 
 #### 参数
 - `name`: 模型补丁文件名 (必需)
