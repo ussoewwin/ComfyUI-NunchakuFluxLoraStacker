@@ -194,6 +194,8 @@ V1 节点 (`NunchakuFluxLoraStack`) 仍然可用，原因如下：
 - **灵活部署**: 在 CPU (内存) 或 GPU (VRAM) 加载之间选择
 - **ConvRot INT8 支持**: 自动检测带有 comfy 原生 `int8_tensorwise`（ConvRot）量化的 ZImage ControlNet 检查点（基于 `comfy_quant` 元数据），并使用 `mixed_precision_ops` 加载；权重始终以 INT8 形式保存在内存中，运算通过 comfy-kitchen 的 `int8_linear` 内核（含在线 ConvRot 激活旋转）执行。GPU 加载与 CPU 卸载均支持
 
+- **量化方法（Text Encoder / ControlNet）**: [Hybrid-Sensitivity-Weighted-Quantization — How to quantize Text Encoder and ControlNet](https://github.com/ussoewwin/Hybrid-Sensitivity-Weighted-Quantization/blob/main/md/How%20to%20quantize%20Text%20Encoder%20and%20ControlNet.md)
+
 #### 使用方法
 1. 将模型补丁文件 (`.safetensors` 或 `.ckpt`) 放入 `model_patches` 文件夹
 2. 将 **Model Patch Loader** 节点添加到您的工作流

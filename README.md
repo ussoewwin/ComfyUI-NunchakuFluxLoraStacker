@@ -194,6 +194,8 @@ Universal LoRA stacker for **standard ComfyUI `MODEL` + `CLIP` pipelines** (SDXL
 - **Flexible Deployment**: Choose between CPU (memory) or GPU (VRAM) loading
 - **ConvRot INT8 Support**: ZImage ControlNet checkpoints quantized with comfy-native `int8_tensorwise` (ConvRot) are detected automatically via their `comfy_quant` metadata and loaded with `mixed_precision_ops`, keeping weights INT8 in memory while running through the comfy-kitchen `int8_linear` kernel (with online ConvRot activation rotation). Works with both GPU loading and CPU offload
 
+- **How to quantize (Text Encoder / ControlNet)**: [Hybrid-Sensitivity-Weighted-Quantization — How to quantize Text Encoder and ControlNet](https://github.com/ussoewwin/Hybrid-Sensitivity-Weighted-Quantization/blob/main/md/How%20to%20quantize%20Text%20Encoder%20and%20ControlNet.md)
+
 #### Usage
 1. Place model patch files (`.safetensors` or `.ckpt`) in the `model_patches` folder
 2. Add **Model Patch Loader** node to your workflow
