@@ -27,7 +27,7 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
     
     <img src="png/SDNQ%20LoRA%20Stacker%20V2.png" width="400">
 
-5. **Model Patch Loader** (`ModelPatchLoaderCustom`) - Load model patches (ControlNet, feature projectors, etc.) with CPU offload support
+5. **Model Patch Loader** (`ModelPatchLoaderCustom`) - Load model patches (ControlNet, feature projectors, etc.) with CPU offload support and ConvRot INT8 support
     
     <img src="png/Model%20Patch%20Loader.png" width="400">
 
@@ -196,6 +196,7 @@ Universal LoRA stacker for **standard ComfyUI `MODEL` + `CLIP` pipelines** (SDXL
 - **Multiple Model Types**: Supports QwenImage ControlNet, SigLIP feature projectors, and ZImage ControlNet
 - **Automatic Detection**: Automatically detects and loads the correct model type based on state dict keys
 - **Flexible Deployment**: Choose between CPU (memory) or GPU (VRAM) loading
+- **ConvRot INT8 Support**: ZImage ControlNet checkpoints quantized with comfy-native `int8_tensorwise` (ConvRot) are detected automatically via their `comfy_quant` metadata and loaded with `mixed_precision_ops`, keeping weights INT8 in memory while running through the comfy-kitchen `int8_linear` kernel (with online ConvRot activation rotation). Works with both GPU loading and CPU offload
 
 #### Usage
 1. Place model patch files (`.safetensors` or `.ckpt`) in the `model_patches` folder
@@ -207,7 +208,7 @@ Universal LoRA stacker for **standard ComfyUI `MODEL` + `CLIP` pipelines** (SDXL
 #### Supported Model Types
 - **QwenImageBlockWiseControlNet**: ControlNet for Qwen image generation models
 - **SigLIPMultiFeatProjModel**: Multi-feature projection model for style features
-- **ZImage_Control**: Z-Image format ControlNet
+- **ZImage_Control**: Z-Image format ControlNet (BF16 and ConvRot INT8 variants)
 
 #### Parameters
 - `name`: Model patch filename (required)

@@ -4,6 +4,8 @@ import logging
 Misc V2 nodes for ComfyUI Beta 2.0 (Desktop).
 """
 
+import json
+
 import torch
 from torch import nn
 import folder_paths
@@ -13,6 +15,7 @@ import comfy.model_management
 import comfy.ldm.common_dit
 import comfy.latent_formats
 import comfy.ldm.lumina.controlnet
+from comfy.quant_ops import QUANT_ALGOS
 
 
 def _model_patch_cpu_offload_apply():
@@ -282,6 +285,43 @@ class SigLIPMultiFeatProjModel(torch.nn.Module):
         return embedding
 
 
+def _decode_comfy_quant(raw) -> dict:
+    try:
+        return json.loads(raw.numpy().tobytes())
+    except Exception:  # noqa: BLE001
+        return {}
+
+
+def _has_int8_comfy_quant(sd) -> bool:
+    """True if the checkpoint carries >=1 int8_tensorwise comfy_quant layer (ConvRot INT8)."""
+    for key in sd.keys():
+        if not key.endswith(".comfy_quant"):
+            continue
+        conf = _decode_comfy_quant(sd[key])
+        if conf.get("format") == "int8_tensorwise":
+            return True
+    return False
+
+
+def _int8_mixed_precision_ops():
+    """MixedPrecisionOps supporting int8_tensorwise (ConvRot included).
+
+    Same approach as the HSWQ ControlNet loader: build the module graph in a
+    float dtype (BF16) and let MixedPrecisionOps.Linear._load_from_state_dict
+    consume "<layer>.comfy_quant" / "<layer>.weight_scale", attaching an INT8
+    QuantizedTensor (TensorWiseINT8Layout) to every quantized Linear.
+    """
+    quant_config = {
+        "int8_tensorwise": QUANT_ALGOS["int8_tensorwise"],
+    }
+    return comfy.ops.mixed_precision_ops(
+        quant_config,
+        torch.bfloat16,
+        full_precision_mm=False,
+        disabled=[],
+    )
+
+
 def z_image_convert(sd):
     replace_keys = {".attention.to_out.0.bias": ".attention.out.bias",
                     ".attention.norm_k.weight": ".attention.k_norm.weight",
@@ -345,7 +385,21 @@ class ModelPatchLoaderCustom:
             sd = comfy.utils.state_dict_prefix_replace(sd, {"feature_embedder.": ""}, filter_keys=True)
             model = SigLIPMultiFeatProjModel(device=model_device, dtype=dtype, operations=comfy.ops.manual_cast)
         elif 'control_all_x_embedder.2-1.weight' in sd: # alipai z image fun controlnet
-            sd = z_image_convert(sd)
+            int8_checkpoint = _has_int8_comfy_quant(sd)
+            if int8_checkpoint:
+                # ConvRot INT8 checkpoint: keys are already in the comfy-native
+                # layout (attention.qkv / attention.out), so z_image_convert is
+                # a no-op and can break quantized key grouping. Build the module
+                # graph in BF16; MixedPrecisionOps attaches INT8 QuantizedTensor
+                # weights (TensorWiseINT8Layout, ConvRot online rotation) during
+                # load_state_dict, so weights stay INT8 in memory.
+                dtype = torch.bfloat16
+                operations = _int8_mixed_precision_ops()
+                logging.info("[ModelPatchLoaderCustom] INT8 ComfyQuant detected in '%s': loading with MixedPrecisionOps (weights stay INT8 / ConvRot)", name)
+            else:
+                operations = comfy.ops.manual_cast
+            if not int8_checkpoint:
+                sd = z_image_convert(sd)
             config = {}
             # Check for 2.0 or 2.1 by counting control_layers
             n_control_layers = 0
@@ -375,7 +429,7 @@ class ModelPatchLoaderCustom:
             else:
                 config['control_in_dim'] = expected_channels
 
-            model = comfy.ldm.lumina.controlnet.ZImage_Control(device=model_device, dtype=dtype, operations=comfy.ops.manual_cast, **config)
+            model = comfy.ldm.lumina.controlnet.ZImage_Control(device=model_device, dtype=dtype, operations=operations, **config)
             
             # Filter only size mismatches; keep keys that are in checkpoint but not in model.state_dict()
             # (e.g. on Windows/aimdo some Linear layers have weight=None so they don't appear in state_dict
