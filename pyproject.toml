@@ -14,8 +14,4 @@ PublisherId = "ussoewwin"
 DisplayName = "ComfyUI-NunchakuFluxLoraStack-and-VariousTools"
 Icon = "https://raw.githubusercontent.com/nunchaku-tech/nunchaku/96615bd93a1f0d2cf98039fddecfec43ce34cc96/assets/nunchaku.svg"
 
-# Vendored upstream SAM3 training stack; not part of the Comfy custom node surface.
-# Keeps `comfy node publish` security (ruff) scans scoped to this project.
-[tool.ruff]
-extend-exclude = ["sam3"]
 
