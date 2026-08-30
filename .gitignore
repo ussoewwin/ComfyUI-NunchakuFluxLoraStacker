@@ -44,6 +44,17 @@ Thumbs.db
 Z-IMAGE-UNION-2.1-SUPPORT.md
 MISC_V2_ERROR_FIX_EXPLANATION.md
 .cursorignore
+md/APOLOGY_*.md
+md/REFLECTION_*.md
 md/APOLOGY_2026-05-19.md
 反省文/
 scratch/
+
+# Backups and temporary files
+*.bak
+*.bak*
+*.old
+*.orig
+*.tmp
+temp/
+tmp/
