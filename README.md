@@ -49,15 +49,11 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
 
 10. **ControlAltAI** (11 nodes) — my Python 3.13 fork, now under `nodes/controlaltai/` (see **[ControlAltAI nodes](#controlaltai-nodes)** below).
 
-11. **CCSR (PyTorch)** (three nodes: `DownloadAndLoadCCSRModel`, `CCSR_Model_Select`, `CCSR_Upscale`) - Load CCSR models (Hugging Face auto-download or local checkpoints) and perform high-quality image upscaling with tiled sampling and color correction; also accepts **ConvRot INT8** checkpoints (see **[CCSR nodes](#ccsr-nodes)** below).
-
-    <img src="png/ccsr.png" width="400">
-
-12. **CCSR (TensorRT)** (two nodes: `LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`) - TRT-engine acceleration of the CCSR ControlNet+UNet (engine-only load, aux VAE/cond_encoder weights, ~24 ms/step vs ~113 ms fp16). Engine + aux weights + ConvRot INT8 model: <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine> (see **[CCSR nodes](#ccsr-nodes)** below).
+11. **CCSR (TensorRT)** (two nodes: `LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`) - TRT-engine acceleration of the CCSR ControlNet+UNet (engine-only load, aux VAE/cond_encoder weights, ~24 ms/step). Prebuilt engine + aux weights + ConvRot INT8 model: <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine> (see **[CCSR nodes](#ccsr-nodes)** below).
 
     <img src="png/ccsrtensor.png" width="400">
 
-13. **Nunchaku Resolution Selector** (`NunchakuResolutionSelector`) — Pick width/height from Flux1-style aspect presets (or custom size), emit hires dimensions, an empty **16-channel** latent, and an info string (see **[Nunchaku Resolution Selector](#nunchaku-resolution-selector-nunchakuresolutionselector)** below).
+12. **Nunchaku Resolution Selector** (`NunchakuResolutionSelector`) — Pick width/height from Flux1-style aspect presets (or custom size), emit hires dimensions, an empty **16-channel** latent, and an info string (see **[Nunchaku Resolution Selector](#nunchaku-resolution-selector-nunchakuresolutionselector)** below).
 
     <img src="png/Resolution%20Selector.png" width="400">
 
@@ -323,26 +319,23 @@ Image upscaling nodes leveraging the CCSR (Creative Content Super-Resolution) ar
 
 The CCSR implementation here started from **[kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR)**. A separate fork was maintained to support the latest ComfyUI environment and **Python 3.13**; that fork is **merged into this repository** under `nodes/CCSR/` **to reduce my own separate-repo maintenance**.
 
-### Node reference - fp16 (PyTorch) nodes
+### Node reference
 
-PyTorch execution path. `CCSR_Model_Select` / `DownloadAndLoadCCSRModel` also accept a **ConvRot INT8** checkpoint: the UNet (ConvRot Linear) and ControlNet (plain INT8 Conv2d) are quantized (3.2 GB → ~2.0 GB file, ~1.1 GiB VRAM saved); VAE / cond_encoder stay fp16. The loader auto-detects INT8 (`comfy_quant` markers) and builds with quantized-loading ops. `steps` is the effective diffusion step count: the t_max/t_min band design is preserved while the schedule is densified so the truncated range contains exactly `steps` timesteps.
+TensorRT execution path (engine-only, no full checkpoint required). The ControlNet+UNet denoise runs on a TensorRT engine; VAE + cond_encoder run on PyTorch fp16 via aux weights loaded beside the engine.
 
-| Node | Role |
-|------|------|
-| **DownloadAndLoadCCSRModel** | Downloads pre-trained CCSR models (`real-world_ccsr-fp16.safetensors` / `real-world_ccsr-fp32.safetensors`) from Hugging Face or loads them if already present under `models/CCSR/`. Returns **`ccsr_model`** (`CCSRMODEL`). |
-| **CCSR_Model_Select** | Selects and loads a local CCSR checkpoint from the standard ComfyUI `checkpoints` directory. Returns **`ccsr_model`** (`CCSRMODEL`). |
-| **CCSR_Upscale** | Performs image upscaling using the loaded CCSR model. Supports customizable steps, tiling parameter controls (`ccsr_tiled_mixdiff` / `ccsr_tiled_vae_gaussian_weights`), and color correction options (`adain` / `wavelet`). Returns **`upscaled_image`** (`IMAGE`). |
+**Model / engine download** (Hugging Face): <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine>
 
-### Node reference - TensorRT nodes
+| File | Put it in |
+|------|-----------|
+| `ccsr_apply_f16io.rtxplan` | `nodes/CCSR/trt_engines/` |
+| `ccsr_trt_aux.safetensors` | `nodes/CCSR/trt_engines/` |
 
-TensorRT execution path (engine-only, no full checkpoint required). Prebuilt engine + aux weights + ConvRot INT8 model: <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine>
-
-Aux weights (`ccsr_trt_aux.safetensors`, VAE + cond_encoder) are auto-loaded beside the engine.
+`steps` is the effective diffusion step count: the t_max/t_min band design is preserved while the schedule is densified so the truncated range contains exactly `steps` timesteps.
 
 | Node | Role |
 |------|------|
-| **LoadCCSRModelTensorRT** | Engine-only loader. Selects a TRT engine from `nodes/CCSR/trt_engines/*.rtxplan`; ControlNet+UNet run on TensorRT (~24 ms/step vs ~113 ms fp16). Returns **`ccsr_model`** (`CCSRMODEL`). |
-| **CCSR_Upscale_TRT** | TRT-accelerated upscale (fixed tile 512 / latent 64x64 to match the static engine shape; other sizes fall back to fp16). Returns **`upscaled_image`** (`IMAGE`). |
+| **LoadCCSRModelTensorRT** | Engine-only loader. Selects a TRT engine from `nodes/CCSR/trt_engines/*.rtxplan`; ControlNet+UNet run on TensorRT (~24 ms/step). Aux weights are auto-loaded from the same folder. Returns **`ccsr_model`** (`CCSRMODEL`). |
+| **CCSR_Upscale_TRT** | TRT-accelerated upscale (fixed tile 512 / latent 64x64 to match the static engine shape). Returns **`upscaled_image`** (`IMAGE`). |
 
 ---
 
