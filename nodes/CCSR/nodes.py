@@ -513,7 +513,7 @@ class DownloadAndLoadCCSRModelTRT:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {
-            "model": (["real-world_ccsr-fp16.safetensors", "real-world_ccsr-fp32.safetensors"],),
+            "model": (["real-world_ccsr-fp16.safetensors"],),
             "engine_path": ("STRING", {"default": ""}),
         }}
 
