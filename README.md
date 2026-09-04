@@ -317,7 +317,14 @@ Image upscaling nodes leveraging the CCSR (Creative Content Super-Resolution) ar
 
 ### Upstream and integration
 
-The CCSR implementation here started from **[kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR)**. A separate fork was maintained to support the latest ComfyUI environment and **Python 3.13**; that fork is **merged into this repository** under `nodes/CCSR/` **to reduce my own separate-repo maintenance**.
+The CCSR code here originates from **[kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR)**, a ComfyUI wrapper around **[csslc/CCSR](https://github.com/csslc/CCSR)** (Apache-2.0). The upstream pack targets the ComfyUI / Python versions of its time, so a **separate fork was maintained** to keep it working on the latest ComfyUI and **Python 3.13** (import structure fixes, dependency updates). Maintaining a whole second repository just for that became wasteful, so the fork was **merged into this repository** under `nodes/CCSR/`.
+
+After the merge the integration went further:
+
+- **fp16 checkpoint support** (Hugging Face `real-world_ccsr-fp16.safetensors`) was added and validated, then the whole CCSR pipeline (tiled VAE encode/decode, ControlNet conditioning, UNet denoise) was verified end-to-end inside this pack.
+- The **apply-model (ControlNet + UNet) was exported to ONNX** with static shapes (fixed 64x64 latent = 512 px tile, empty-text context `(1,2,1024)`), converted to **fp16 I/O**, and built into a **TensorRT-RTX engine** (`ccsr_apply_f16io.rtxplan`). The engine runs the whole conditional denoise on the GPU without leaving the graph between ControlNet and UNet (~24 ms/step).
+- The remaining non-engine parts (VAE + cond_encoder) were packaged as **aux weights** (`ccsr_trt_aux.safetensors`) so the TRT loader needs **no full checkpoint**.
+- **ConvRot INT8** quantization of the UNet/ControlNet was added for the PyTorch path, but since TensorRT turned out both **faster and lighter** than fp16 or INT8 PyTorch inference, the PyTorch nodes were **removed** - this pack now ships the **TensorRT-only** CCSR path (`LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`).
 
 ### Node reference
 
