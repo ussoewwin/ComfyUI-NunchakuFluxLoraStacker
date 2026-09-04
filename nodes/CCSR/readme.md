@@ -34,7 +34,7 @@ automatically from the same folder.
 ### Load CCSR Model (TensorRT) — `LoadCCSRModelTensorRT`
 
 Engine-only loader. Select an engine from `nodes/CCSR/trt_engines/*.rtxplan`;
-the ControlNet+UNet apply-model runs on the TensorRT engine (~24 ms/step).
+the ControlNet+UNet apply-model runs on the TensorRT engine (~1.4x vs fp16 PyTorch).
 Aux weights (`ccsr_trt_aux.safetensors`, VAE + cond_encoder) are loaded
 automatically, so **no full checkpoint is required**. Returns **`ccsr_model`**
 (`CCSRMODEL`).

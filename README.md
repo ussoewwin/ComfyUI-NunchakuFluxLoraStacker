@@ -49,7 +49,7 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
 
 10. **ControlAltAI** (11 nodes) — my Python 3.13 fork, now under `nodes/controlaltai/` (see **[ControlAltAI nodes](#controlaltai-nodes)** below).
 
-11. **CCSR (TensorRT)** (two nodes: `LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`) - TRT-engine acceleration of the CCSR ControlNet+UNet (engine-only load, aux VAE/cond_encoder weights, ~24 ms/step). Prebuilt engine + aux weights + ConvRot INT8 model: <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine> (see **[CCSR nodes](#ccsr-nodes)** below).
+11. **CCSR (TensorRT)** (two nodes: `LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`) - TRT-engine acceleration of the CCSR ControlNet+UNet (engine-only load, aux VAE/cond_encoder weights, ~1.4x vs fp16 PyTorch). Prebuilt engine + aux weights + ConvRot INT8 model: <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine> (see **[CCSR nodes](#ccsr-nodes)** below).
 
     <img src="png/ccsrtensor.png" width="400">
 
@@ -322,7 +322,7 @@ The CCSR code here originates from **[kijai/ComfyUI-CCSR](https://github.com/kij
 After the merge the integration went further:
 
 - **fp16 checkpoint support** (Hugging Face `real-world_ccsr-fp16.safetensors`) was added and validated, then the whole CCSR pipeline (tiled VAE encode/decode, ControlNet conditioning, UNet denoise) was verified end-to-end inside this pack.
-- The **apply-model (ControlNet + UNet) was exported to ONNX** with static shapes (fixed 64x64 latent = 512 px tile, empty-text context `(1,2,1024)`), converted to **fp16 I/O**, and built into a **TensorRT-RTX engine** (`ccsr_apply_f16io.rtxplan`). The engine runs the whole conditional denoise on the GPU without leaving the graph between ControlNet and UNet (~24 ms/step).
+- The **apply-model (ControlNet + UNet) was exported to ONNX** with static shapes (fixed 64x64 latent = 512 px tile, empty-text context `(1,2,1024)`), converted to **fp16 I/O**, and built into a **TensorRT-RTX engine** (`ccsr_apply_f16io.rtxplan`). The engine runs the whole conditional denoise on the GPU without leaving the graph between ControlNet and UNet (~1.4x vs fp16 PyTorch).
 - The remaining non-engine parts (VAE + cond_encoder) were packaged as **aux weights** (`ccsr_trt_aux.safetensors`) so the TRT loader needs **no full checkpoint**.
 - **ConvRot INT8** quantization of the UNet/ControlNet was added for the PyTorch path, but since TensorRT turned out both **faster and lighter** than fp16 or INT8 PyTorch inference, the PyTorch nodes were **removed** - this pack now ships the **TensorRT-only** CCSR path (`LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`).
 
@@ -341,7 +341,7 @@ TensorRT execution path (engine-only, no full checkpoint required). The ControlN
 
 | Node | Role |
 |------|------|
-| **LoadCCSRModelTensorRT** | Engine-only loader. Selects a TRT engine from `nodes/CCSR/trt_engines/*.rtxplan`; ControlNet+UNet run on TensorRT (~24 ms/step). Aux weights are auto-loaded from the same folder. Returns **`ccsr_model`** (`CCSRMODEL`). |
+| **LoadCCSRModelTensorRT** | Engine-only loader. Selects a TRT engine from `nodes/CCSR/trt_engines/*.rtxplan`; ControlNet+UNet run on TensorRT (~1.4x vs fp16 PyTorch). Aux weights are auto-loaded from the same folder. Returns **`ccsr_model`** (`CCSRMODEL`). |
 | **CCSR_Upscale_TRT** | TRT-accelerated upscale (fixed tile 512 / latent 64x64 to match the static engine shape). Returns **`upscaled_image`** (`IMAGE`). |
 
 ---
