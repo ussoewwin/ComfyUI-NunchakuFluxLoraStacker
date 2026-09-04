@@ -507,7 +507,7 @@ class CCSRTRTModelWrapper:
         return next(self._model.parameters()).dtype
 
 
-class DownloadAndLoadCCSRModelTRT:
+class LoadCCSRModelTensorRT:
     """Load CCSR checkpoint and the TRT apply_model engine."""
 
     @classmethod
@@ -666,13 +666,13 @@ NODE_CLASS_MAPPINGS = {
     "CCSR_Upscale": CCSR_Upscale,
     "CCSR_Model_Select": CCSR_Model_Select,
     "DownloadAndLoadCCSRModel": DownloadAndLoadCCSRModel,
-    "DownloadAndLoadCCSRModelTRT": DownloadAndLoadCCSRModelTRT,
+    "LoadCCSRModelTensorRT": LoadCCSRModelTensorRT,
     "CCSR_Upscale_TRT": CCSR_Upscale_TRT
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "CCSR_Upscale": "CCSR_Upscale",
     "CCSR_Model_Select": "CCSR_Model_Select",
     "DownloadAndLoadCCSRModel": "DownloadAndLoad CCSRModel",
-    "DownloadAndLoadCCSRModelTRT": "DownloadAndLoad CCSRModel (TRT)",
+    "LoadCCSRModelTensorRT": "Load CCSR Model (TensorRT)",
     "CCSR_Upscale_TRT": "CCSR Upscale (TRT)"
 }
