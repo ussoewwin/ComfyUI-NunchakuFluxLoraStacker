@@ -13,7 +13,11 @@ _ENGINES = {}
 
 
 class CCSRTRTEngine:
-    """Thin wrapper around a deserialized TRT engine with async execution."""
+    """Thin wrapper around a deserialized TRT engine with async execution.
+
+    Runs on the CURRENT torch stream and synchronizes after each call so the
+    sampler's interleaved CUDA ops never race the engine (avoids deadlocks).
+    """
 
     def __init__(self, engine_path: str, device: torch.device):
         self.path = os.path.abspath(engine_path)
@@ -26,7 +30,6 @@ class CCSRTRTEngine:
         names = [self.engine.get_tensor_name(i) for i in range(self.engine.num_io_tensors)]
         self.inputs = [n for n in names if self.engine.get_tensor_mode(n) == trt.TensorIOMode.INPUT]
         self.outputs = [n for n in names if self.engine.get_tensor_mode(n) == trt.TensorIOMode.OUTPUT]
-        self.stream = torch.cuda.Stream(device=device)
         self.n_x = next(n for n in self.inputs if n == "x")
         self.n_hint = next(n for n in self.inputs if n == "hint")
         self.n_t = next(n for n in self.inputs if "time" in n)
@@ -37,6 +40,7 @@ class CCSRTRTEngine:
 
     def run(self, x, hint, t, context):
         dt = self.dtype
+        cur = torch.cuda.current_stream()
         xb = x.to(device=self.device, dtype=dt).contiguous()
         hb = hint.to(device=self.device, dtype=dt).contiguous()
         tb = t.to(device=self.device, dtype=torch.int64).contiguous()
@@ -47,12 +51,12 @@ class CCSRTRTEngine:
         self.ctx.set_tensor_address(self.n_t, tb.data_ptr())
         self.ctx.set_tensor_address(self.n_ctx, cb.data_ptr())
         self.ctx.set_tensor_address(self.n_out, out.data_ptr())
-        with torch.cuda.stream(self.stream):
-            ok = self.ctx.execute_async_v3(self.stream.cuda_stream)
-        self.stream.synchronize()
+        ok = self.ctx.execute_async_v3(cur.cuda_stream)
+        cur.synchronize()
         if not ok:
             raise RuntimeError("CCSR TRT engine execution failed")
-        return out
+        # return in the input's dtype so the fp32 sampler math stays fp32
+        return out.to(dtype=x.dtype)
 
     def release(self):
         for attr in ("ctx", "engine", "runtime"):
