@@ -544,8 +544,21 @@ class LoadCCSRModelTensorRT:
 
     @classmethod
     def INPUT_TYPES(s):
+        # list CCSR checkpoints that actually exist under models/CCSR|unet|checkpoints
+        files = []
+        seen = set()
+        for base in ("CCSR", "unet", "checkpoints"):
+            d = os.path.join(folder_paths.models_dir, base)
+            if not os.path.isdir(d):
+                continue
+            for fn in sorted(os.listdir(d)):
+                if fn.lower().startswith("real-world_ccsr") and fn.endswith(".safetensors") and fn not in seen:
+                    seen.add(fn)
+                    files.append(fn)
+        if not files:
+            files = ["real-world_ccsr_convrot_int8.safetensors"]
         return {"required": {
-            "model": (["real-world_ccsr-fp16.safetensors"],),
+            "model": (files,),
             "engine_path": ("STRING", {"default": ""}),
         }}
 
@@ -557,7 +570,7 @@ class LoadCCSRModelTensorRT:
     def loadmodel(self, model, engine_path=""):
         device = mm.get_torch_device()
         offload_device = mm.unet_offload_device()
-        dtype = torch.float16 if "fp16" in model else torch.float32
+        dtype = torch.float16
 
         # search models/CCSR first, then models/unet (extra_model_paths maps unet->checkpoints)
         safetensors_path = None
@@ -571,9 +584,20 @@ class LoadCCSRModelTensorRT:
 
         config_path = os.path.join(script_directory, "configs/model/ccsr_stage2.yaml")
         config = OmegaConf.load(config_path)
-        ccsr = instantiate_from_config(config)
-        sd = comfy.utils.load_torch_file(safetensors_path)
-        ccsr.load_state_dict(sd, strict=False)
+
+        is_int8 = checkpoint_is_hswq_int8(safetensors_path) if _INT8_AVAILABLE else False
+        if is_int8:
+            print(f"[CCSR-TRT] INT8 checkpoint: {model} (UNet/CN handled by TRT engine)", flush=True)
+            mixed_ops = get_mixed_ops(torch.float16)
+            with _ops_swap(mixed_ops):
+                ccsr = instantiate_from_config(config)
+            sd = comfy.utils.load_torch_file(safetensors_path)
+            prepare_state_for_comfy_ops(sd)
+            ccsr.load_state_dict(sd, strict=False)
+        else:
+            ccsr = instantiate_from_config(config)
+            sd = comfy.utils.load_torch_file(safetensors_path)
+            ccsr.load_state_dict(sd, strict=False)
         del sd
         mm.soft_empty_cache()
         ccsr = ccsr.to(device, dtype=dtype).eval()
