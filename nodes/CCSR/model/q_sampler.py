@@ -587,7 +587,9 @@ class SpacedSampler:
 
         time_range = np.flip(self.timesteps)  # [1000, 950, 900, ...]
         total_steps = len(time_range)
-        total_steps_use = total_steps
+        time_range = time_range[-int(round(total_steps * t_max)):]
+        total_steps_use = len(time_range)
+        time_range = time_range[:-int(round(total_steps * t_min))]
         iterator = tqdm(time_range, desc="Spaced Sampler", total=total_steps)
         pbar = comfy.utils.ProgressBar(total_steps // 3)
         # sampling loop
@@ -740,7 +742,9 @@ class SpacedSampler:
 
         time_range = np.flip(self.timesteps)  # [1000, 950, 900, ...]
         total_steps = len(time_range)
-        total_steps_use = total_steps
+        time_range = time_range[-int(round(total_steps * t_max)):]
+        total_steps_use = len(time_range)
+        time_range = time_range[:-int(round(total_steps * t_min))]
         iterator = tqdm(time_range, desc="Spaced Sampler", total=total_steps)
 
         # sampling loop
@@ -1031,7 +1035,9 @@ class SpacedSampler:
 
         time_range = np.flip(self.timesteps)  # [1000, 950, 900, ...]
         total_steps = len(time_range)
-        total_steps_use = total_steps
+        time_range = time_range[-int(round(total_steps * t_max)):]
+        total_steps_use = len(time_range)
+        time_range = time_range[:-int(round(total_steps * t_min))]
         iterator = tqdm(time_range, desc="Spaced Sampler", total=total_steps)
         pbar = comfy.utils.ProgressBar(total_steps // 3)
 
@@ -1101,6 +1107,8 @@ class SpacedSampler:
         )
 
         time_range = np.flip(self.timesteps)  # [1000, 950, 900, ...]
+        total_steps = len(time_range)
+        time_range = time_range[-int(round(total_steps * t_max)):]
         total_steps = len(time_range)
         iterator = tqdm(time_range, desc="Spaced Sampler", total=total_steps)
 
