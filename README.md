@@ -49,12 +49,15 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
 
 10. **ControlAltAI** (11 nodes) — my Python 3.13 fork, now under `nodes/controlaltai/` (see **[ControlAltAI nodes](#controlaltai-nodes)** below).
 
-11. **CCSR** (three nodes: `DownloadAndLoadCCSRModel`, `CCSR_Model_Select`, `CCSR_Upscale`) — Load CCSR models (Hugging Face auto-download or local checkpoints) and perform high-quality image upscaling with tiled sampling and color correction (see **[CCSR nodes](#ccsr-nodes)** below).
-    
+11. **CCSR (PyTorch)** (three nodes: `DownloadAndLoadCCSRModel`, `CCSR_Model_Select`, `CCSR_Upscale`) - Load CCSR models (Hugging Face auto-download or local checkpoints) and perform high-quality image upscaling with tiled sampling and color correction; also accepts **ConvRot INT8** checkpoints (see **[CCSR nodes](#ccsr-nodes)** below).
+
     <img src="png/ccsr.png" width="400">
+
+12. **CCSR (TensorRT)** (two nodes: `LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`) - TRT-engine acceleration of the CCSR ControlNet+UNet (engine-only load, aux VAE/cond_encoder weights, ~24 ms/step vs ~113 ms fp16) (see **[CCSR nodes](#ccsr-nodes)** below).
+
 <img src="png/ccsrtensor.png" width="400">
 
-12. **Nunchaku Resolution Selector** (`NunchakuResolutionSelector`) — Pick width/height from Flux1-style aspect presets (or custom size), emit hires dimensions, an empty **16-channel** latent, and an info string (see **[Nunchaku Resolution Selector](#nunchaku-resolution-selector-nunchakuresolutionselector)** below).
+13. **Nunchaku Resolution Selector** (`NunchakuResolutionSelector`) — Pick width/height from Flux1-style aspect presets (or custom size), emit hires dimensions, an empty **16-channel** latent, and an info string (see **[Nunchaku Resolution Selector](#nunchaku-resolution-selector-nunchakuresolutionselector)** below).
 
     <img src="png/Resolution%20Selector.png" width="400">
 
