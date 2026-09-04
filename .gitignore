@@ -58,3 +58,8 @@ scratch/
 *.tmp
 temp/
 tmp/
+
+# TRT engines (build artifacts)
+**/trt_engines/
+*.rtxplan
+

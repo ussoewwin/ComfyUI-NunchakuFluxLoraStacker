@@ -17,6 +17,12 @@ import folder_paths
 from nodes import ImageScaleBy
 from nodes import ImageScale
 
+try:
+    from .trt_engine import get_engine, release_trt_engines
+    _TRT_AVAILABLE = True
+except Exception:
+    _TRT_AVAILABLE = False
+
 script_directory = os.path.dirname(os.path.abspath(__file__))
 
 # xformersログ制御用のクラス
@@ -441,13 +447,228 @@ class DownloadAndLoadCCSRModel:
         return (ccsr_model,)
 
     
+
+_TRT_ENGINE_DIR = os.path.join(script_directory, "trt_engines")
+
+
+def _find_engine():
+    """Locate the CCSR TRT apply engine."""
+    candidates = [
+        os.path.join(script_directory, "trt_engines", "ccsr_apply_f16io.rtxplan"),
+        os.path.join(folder_paths.models_dir, "unet", "ccsr_apply_f16io.rtxplan"),
+        os.path.join(folder_paths.models_dir, "ccsr", "trt", "ccsr_apply_f16io.rtxplan"),
+    ]
+    for c in candidates:
+        p = os.path.normpath(c)
+        if os.path.exists(p):
+            return p
+    return None
+
+
+class CCSRTRTModelWrapper:
+    """Wrap CCSR ControlLDM: apply_model dispatches to the TRT engine when the
+    spatial latent matches (64x64), else falls back to the original FP16 path."""
+
+    def __init__(self, model, engine, latent_size=64):
+        self._model = model
+        self._engine = engine
+        self._latent_size = latent_size
+        self._fallback = model.apply_model
+        self.control_scales = model.control_scales
+
+    def __getattr__(self, item):
+        return getattr(self._model, item)
+
+    def apply_model(self, x_noisy, t, cond, *a, **k):
+        h, w = x_noisy.shape[-2], x_noisy.shape[-1]
+        if self._engine is not None and (h, w) == (self._latent_size, self._latent_size):
+            hint = cond["c_latent"][0] if cond.get("c_latent") else torch.zeros_like(x_noisy)
+            context = cond["c_crossattn"][0] if cond.get("c_crossattn") else None
+            return self._engine.run(x_noisy, hint, t, context)
+        return self._fallback(x_noisy, t, cond, *a, **k)
+
+    def to(self, *a, **k):
+        self._model.to(*a, **k)
+        return self
+
+    def eval(self):
+        self._model.eval()
+        return self
+
+    @property
+    def device(self):
+        return next(self._model.parameters()).device
+
+    @property
+    def dtype(self):
+        return next(self._model.parameters()).dtype
+
+
+class DownloadAndLoadCCSRModelTRT:
+    """Load CCSR checkpoint and the TRT apply_model engine."""
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "model": (["real-world_ccsr-fp16.safetensors", "real-world_ccsr-fp32.safetensors"],),
+            "engine_path": ("STRING", {"default": ""}),
+        }}
+
+    RETURN_TYPES = ("CCSRMODEL",)
+    RETURN_NAMES = ("ccsr_model",)
+    FUNCTION = "loadmodel"
+    CATEGORY = "CCSR"
+
+    def loadmodel(self, model, engine_path=""):
+        device = mm.get_torch_device()
+        offload_device = mm.unet_offload_device()
+        dtype = torch.float16 if "fp16" in model else torch.float32
+
+        # search models/CCSR first, then models/unet (extra_model_paths maps unet->checkpoints)
+        safetensors_path = None
+        for base in ("CCSR", "unet", "checkpoints"):
+            cand = os.path.join(folder_paths.models_dir, base, model)
+            if os.path.exists(cand):
+                safetensors_path = cand
+                break
+        if safetensors_path is None:
+            raise FileNotFoundError(f"CCSR model not found under models/: {model}")
+
+        config_path = os.path.join(script_directory, "configs/model/ccsr_stage2.yaml")
+        config = OmegaConf.load(config_path)
+        ccsr = instantiate_from_config(config)
+        sd = comfy.utils.load_torch_file(safetensors_path)
+        ccsr.load_state_dict(sd, strict=False)
+        del sd
+        mm.soft_empty_cache()
+        ccsr = ccsr.to(device, dtype=dtype).eval()
+        for m in ccsr.modules():
+            if hasattr(m, "use_checkpoint"):
+                m.use_checkpoint = False
+
+        engine = None
+        if engine_path:
+            if not os.path.exists(engine_path):
+                raise FileNotFoundError(f"engine not found: {engine_path}")
+            engine = get_engine(engine_path, device)
+            print(f"[CCSR-TRT] engine loaded: {engine_path}", flush=True)
+        else:
+            ep = _find_engine()
+            if ep:
+                engine = get_engine(ep, device)
+                print(f"[CCSR-TRT] auto engine: {ep}", flush=True)
+
+        wrapped = CCSRTRTModelWrapper(ccsr, engine)
+        ccsr_model = {"model": wrapped, "dtype": dtype, "trt": engine is not None}
+        return (ccsr_model,)
+
+
+class CCSR_Upscale_TRT:
+    """CCSR upscale using the TRT apply_model engine (tile 512 fixed)."""
+
+    upscale_methods = ["nearest-exact", "bilinear", "area", "bicubic", "lanczos"]
+
+    @classmethod
+    def INPUT_TYPES(s):
+        return {"required": {
+            "ccsr_model": ("CCSRMODEL",),
+            "image": ("IMAGE",),
+            "resize_method": (s.upscale_methods, {"default": "lanczos"}),
+            "scale_by": ("FLOAT", {"default": 1.0, "min": 0.01, "max": 20.0, "step": 0.01}),
+            "steps": ("INT", {"default": 15, "min": 3, "max": 4096, "step": 1}),
+            "t_max": ("FLOAT", {"default": 0.64, "min": 0, "max": 1, "step": 0.01}),
+            "t_min": ("FLOAT", {"default": 0.35, "min": 0, "max": 1, "step": 0.01}),
+            "tile_size": ("INT", {"default": 512, "min": 512, "max": 512, "step": 1}),
+            "tile_stride": ("INT", {"default": 256, "min": 8, "max": 512, "step": 8}),
+            "vae_tile_size_encode": ("INT", {"default": 1024, "min": 2, "max": 4096, "step": 8}),
+            "vae_tile_size_decode": ("INT", {"default": 1024, "min": 2, "max": 4096, "step": 8}),
+            "color_fix_type": (["none", "adain", "wavelet"], {"default": "adain"}),
+            "keep_model_loaded": ("BOOLEAN", {"default": False}),
+            "seed": ("INT", {"default": 123, "min": 0, "max": 0xffffffffffffffff, "step": 1}),
+        }}
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("upscaled_image",)
+    FUNCTION = "process"
+    CATEGORY = "CCSR"
+
+    @torch.no_grad()
+    def process(self, ccsr_model, image, resize_method, scale_by, steps, t_max, t_min,
+                tile_size, tile_stride, vae_tile_size_encode, vae_tile_size_decode,
+                color_fix_type, keep_model_loaded, seed):
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        mm.unload_all_models()
+        device = mm.get_torch_device()
+        offload_device = mm.unet_offload_device()
+        dtype = ccsr_model["dtype"]
+        model = ccsr_model["model"]
+        trt_active = ccsr_model.get("trt", False)
+
+        empty_text_embed_sd = comfy.utils.load_torch_file(
+            os.path.join(script_directory, "empty_text_embed.safetensors"))
+        empty_text_embed = empty_text_embed_sd["empty_text_embed"].to(dtype).to(device)
+
+        sampler = SpacedSampler(model, var_type="fixed_small")
+        image, = ImageScaleBy.upscale(self, image, resize_method, scale_by)
+        B, H, W, C = image.shape
+        new_height = H // 64 * 64
+        new_width = W // 64 * 64
+        image = image.permute(0, 3, 1, 2).contiguous()
+        resized_image = F.interpolate(image, size=(new_height, new_width), mode="bilinear", align_corners=False)
+
+        strength = 1.0
+        model.control_scales = [strength] * 13
+        model.to(device, dtype=dtype).eval()
+
+        height, width = resized_image.size(-2), resized_image.size(-1)
+        shape = (1, 4, height // 8, width // 8)
+        x_T = torch.randn(shape, device=model.device, dtype=torch.float32)
+
+        out = []
+        if B > 1:
+            pbar = comfy.utils.ProgressBar(B)
+        autocast_condition = dtype == torch.float16 and not mm.is_device_mps(device)
+        with XFormersKernelOnce():
+            with torch.autocast(mm.get_autocast_device(device), dtype=dtype) if autocast_condition else nullcontext():
+                for i in range(B):
+                    img = resized_image[i].unsqueeze(0).to(device)
+                    model._init_tiled_vae(encoder_tile_size=vae_tile_size_encode // 8,
+                                          decoder_tile_size=vae_tile_size_decode // 8)
+                    samples = sampler.sample_with_tile_ccsr(
+                        empty_text_embed, tile_size=tile_size, tile_stride=tile_stride,
+                        steps=steps, t_max=t_max, t_min=t_min, shape=shape, cond_img=img,
+                        positive_prompt="", negative_prompt="", x_T=x_T,
+                        cfg_scale=1.0, color_fix_type=color_fix_type)
+                    out.append(samples.squeeze(0).cpu())
+                    mm.throw_exception_if_processing_interrupted()
+                    if B > 1:
+                        pbar.update(1)
+                        print("Sampled image ", i + 1, " out of ", B)
+
+        original_height, original_width = H, W
+        processed_height = out[0].size(1) if len(out) > 0 else samples.size(2)
+        target_width = int(processed_height * (original_width / original_height))
+        out_stacked = torch.stack(out, dim=0).cpu().to(torch.float32).permute(0, 2, 3, 1)
+        resized_back_image, = ImageScale.upscale(self, out_stacked, "lanczos", target_width, processed_height, crop="disabled")
+
+        if not keep_model_loaded:
+            release_trt_engines()
+            model.to(offload_device)
+            mm.soft_empty_cache()
+        return (resized_back_image,)
+
 NODE_CLASS_MAPPINGS = {
     "CCSR_Upscale": CCSR_Upscale,
     "CCSR_Model_Select": CCSR_Model_Select,
-    "DownloadAndLoadCCSRModel": DownloadAndLoadCCSRModel
+    "DownloadAndLoadCCSRModel": DownloadAndLoadCCSRModel,
+    "DownloadAndLoadCCSRModelTRT": DownloadAndLoadCCSRModelTRT,
+    "CCSR_Upscale_TRT": CCSR_Upscale_TRT
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
     "CCSR_Upscale": "CCSR_Upscale",
     "CCSR_Model_Select": "CCSR_Model_Select",
-    "DownloadAndLoadCCSRModel": "DownloadAndLoad CCSRModel"
+    "DownloadAndLoadCCSRModel": "DownloadAndLoad CCSRModel",
+    "DownloadAndLoadCCSRModelTRT": "DownloadAndLoad CCSRModel (TRT)",
+    "CCSR_Upscale_TRT": "CCSR Upscale (TRT)"
 }
