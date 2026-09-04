@@ -907,9 +907,7 @@ class SpacedSampler:
 
         time_range = np.flip(self.timesteps)  # [1000, 950, 900, ...]
         total_steps = len(time_range)
-        time_range = time_range[total_steps // (tao_steps - 1):]
-        total_steps_use = len(time_range)
-        # time_range = time_range[:-total_steps//(tao_steps-1)]
+        total_steps_use = total_steps
         iterator = tqdm(time_range, desc="Spaced Sampler", total=total_steps)
 
         # sampling loop
