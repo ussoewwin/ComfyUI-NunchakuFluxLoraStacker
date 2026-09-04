@@ -553,7 +553,7 @@ class SpacedSampler:
         # predict noise for each tile
         tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
         for hi, hi_end, wi, wi_end in tiles_iterator:
-            tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
+            tiles_iterator.set_description(f"[init t=999] tile ({hi} {hi_end}) ({wi} {wi_end})")
             # noisy latent of this diffusion process (tile) at this step
             tile_img = img[:, :, hi:hi_end, wi:wi_end]
             # prepare condition for this tile
@@ -598,7 +598,7 @@ class SpacedSampler:
             # predict noise for each tile
             tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
             for hi, hi_end, wi, wi_end in tiles_iterator:
-                tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
+                tiles_iterator.set_description(f"[step {i + 1}/{total_steps}] tile ({hi} {hi_end}) ({wi} {wi_end})")
                 # noisy latent of this diffusion process (tile) at this step
                 tile_img = img[:, :, hi:hi_end, wi:wi_end]
                 # prepare condition for this tile
@@ -708,7 +708,7 @@ class SpacedSampler:
         # predict noise for each tile
         tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
         for hi, hi_end, wi, wi_end in tiles_iterator:
-            tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
+            tiles_iterator.set_description(f"[init t=999] tile ({hi} {hi_end}) ({wi} {wi_end})")
             # noisy latent of this diffusion process (tile) at this step
             tile_img = img[:, :, hi:hi_end, wi:wi_end]
             # prepare condition for this tile
@@ -752,7 +752,7 @@ class SpacedSampler:
             # predict noise for each tile
             tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
             for hi, hi_end, wi, wi_end in tiles_iterator:
-                tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
+                tiles_iterator.set_description(f"[step {i + 1}/{total_steps}] tile ({hi} {hi_end}) ({wi} {wi_end})")
                 # noisy latent of this diffusion process (tile) at this step
                 tile_img = img[:, :, hi:hi_end, wi:wi_end]
                 # prepare condition for this tile
@@ -875,7 +875,7 @@ class SpacedSampler:
         # predict noise for each tile
         tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
         for hi, hi_end, wi, wi_end in tiles_iterator:
-            tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
+            tiles_iterator.set_description(f"[init t=999] tile ({hi} {hi_end}) ({wi} {wi_end})")
             # noisy latent of this diffusion process (tile) at this step
             tile_img = img[:, :, hi:hi_end, wi:wi_end]
             # prepare condition for this tile
@@ -919,7 +919,7 @@ class SpacedSampler:
             # predict noise for each tile
             tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
             for hi, hi_end, wi, wi_end in tiles_iterator:
-                tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
+                tiles_iterator.set_description(f"[step {i + 1}/{total_steps}] tile ({hi} {hi_end}) ({wi} {wi_end})")
                 # noisy latent of this diffusion process (tile) at this step
                 tile_img = img[:, :, hi:hi_end, wi:wi_end]
                 # prepare condition for this tile
