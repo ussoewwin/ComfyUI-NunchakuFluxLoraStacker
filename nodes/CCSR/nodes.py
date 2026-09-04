@@ -484,7 +484,10 @@ class CCSRTRTModelWrapper:
         if self._engine is not None and (h, w) == (self._latent_size, self._latent_size):
             hint = cond["c_latent"][0] if cond.get("c_latent") else torch.zeros_like(x_noisy)
             context = cond["c_crossattn"][0] if cond.get("c_crossattn") else None
+            tv = int(t.reshape(-1)[0].item()) if t.numel() == 1 else "?"
+            print(f"[CCSR-TRT] apply_model -> TRT engine (tile {h}x{w}, t={tv})", flush=True)
             return self._engine.run(x_noisy, hint, t, context)
+        print(f"[CCSR-TRT] apply_model -> FP16 fallback (tile {h}x{w})", flush=True)
         return self._fallback(x_noisy, t, cond, *a, **k)
 
     def to(self, *a, **k):
@@ -620,6 +623,7 @@ class CCSR_Upscale_TRT:
         strength = 1.0
         model.control_scales = [strength] * 13
         model.to(device, dtype=dtype).eval()
+        print(f"[CCSR-TRT] upscale start: image={tuple(image.shape)} steps={steps} tile={tile_size} TRT={'yes' if trt_active else 'no'} engine={ccsr_model.get('trt', False)}", flush=True)
 
         height, width = resized_image.size(-2), resized_image.size(-1)
         shape = (1, 4, height // 8, width // 8)

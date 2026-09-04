@@ -38,7 +38,14 @@ class CCSRTRTEngine:
         t = self.engine.get_tensor_dtype(self.n_x)
         self.dtype = torch.float16 if t == trt.DataType.HALF else torch.float32
 
+    _call_count = 0
+
     def run(self, x, hint, t, context):
+        CCSRTRTEngine._call_count += 1
+        n = CCSRTRTEngine._call_count
+        if n <= 3 or n % 20 == 0:
+            tv = int(t.reshape(-1)[0].item()) if t.numel() == 1 else "?"
+            print(f"[CCSR-TRT] engine call #{n}: x{tuple(x.shape)} t={tv} hint{tuple(hint.shape)}", flush=True)
         dt = self.dtype
         cur = torch.cuda.current_stream()
         xb = x.to(device=self.device, dtype=dt).contiguous()
