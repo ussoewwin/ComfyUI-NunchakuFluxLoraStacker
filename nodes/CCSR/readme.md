@@ -52,6 +52,9 @@ and builds the model with quantized-loading ops.
 
 ## TensorRT engine nodes
 
+Prebuilt engine + aux weights + ConvRot INT8 model (Hugging Face): <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine>
+
+
 - **Load CCSR Model (TensorRT)** — engine-only loader. Select the engine file
   from `nodes/CCSR/trt_engines/*.rtxplan`; the ControlNet+UNet are executed by
   the TRT engine (built from the fp16 checkpoint, ~24 ms/step vs ~113 ms fp16).

@@ -53,7 +53,7 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
 
     <img src="png/ccsr.png" width="400">
 
-12. **CCSR (TensorRT)** (two nodes: `LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`) - TRT-engine acceleration of the CCSR ControlNet+UNet (engine-only load, aux VAE/cond_encoder weights, ~24 ms/step vs ~113 ms fp16) (see **[CCSR nodes](#ccsr-nodes)** below).
+12. **CCSR (TensorRT)** (two nodes: `LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`) - TRT-engine acceleration of the CCSR ControlNet+UNet (engine-only load, aux VAE/cond_encoder weights, ~24 ms/step vs ~113 ms fp16). Engine + aux weights + ConvRot INT8 model: <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine> (see **[CCSR nodes](#ccsr-nodes)** below).
 
     <img src="png/ccsrtensor.png" width="400">
 
@@ -335,7 +335,9 @@ PyTorch execution path. `CCSR_Model_Select` / `DownloadAndLoadCCSRModel` also ac
 
 ### Node reference - TensorRT nodes
 
-TensorRT execution path (engine-only, no full checkpoint required). Aux weights (`ccsr_trt_aux.safetensors`, VAE + cond_encoder) are auto-loaded beside the engine.
+TensorRT execution path (engine-only, no full checkpoint required). Prebuilt engine + aux weights + ConvRot INT8 model: <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine>
+
+Aux weights (`ccsr_trt_aux.safetensors`, VAE + cond_encoder) are auto-loaded beside the engine.
 
 | Node | Role |
 |------|------|
