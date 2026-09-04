@@ -55,7 +55,7 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
 
 12. **CCSR (TensorRT)** (two nodes: `LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`) - TRT-engine acceleration of the CCSR ControlNet+UNet (engine-only load, aux VAE/cond_encoder weights, ~24 ms/step vs ~113 ms fp16) (see **[CCSR nodes](#ccsr-nodes)** below).
 
-<img src="png/ccsrtensor.png" width="400">
+    <img src="png/ccsrtensor.png" width="400">
 
 13. **Nunchaku Resolution Selector** (`NunchakuResolutionSelector`) — Pick width/height from Flux1-style aspect presets (or custom size), emit hires dimensions, an empty **16-channel** latent, and an info string (see **[Nunchaku Resolution Selector](#nunchaku-resolution-selector-nunchakuresolutionselector)** below).
 
