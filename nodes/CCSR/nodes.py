@@ -544,9 +544,9 @@ class LoadCCSRModelTensorRT:
 
     @classmethod
     def INPUT_TYPES(s):
-        # list CCSR checkpoints that actually exist under models/CCSR|unet|checkpoints
-        files = []
-        seen = set()
+        # optional checkpoint (VAE+cond_encoder fallback); engine alone is enough
+        files = ["(engine only)"]
+        seen = {"(engine only)"}
         for base in ("CCSR", "unet", "checkpoints"):
             d = os.path.join(folder_paths.models_dir, base)
             if not os.path.isdir(d):
@@ -555,11 +555,10 @@ class LoadCCSRModelTensorRT:
                 if fn.lower().startswith("real-world_ccsr") and fn.endswith(".safetensors") and fn not in seen:
                     seen.add(fn)
                     files.append(fn)
-        if not files:
-            files = ["real-world_ccsr_convrot_int8.safetensors"]
         return {"required": {
-            "model": (files,),
             "engine_path": ("STRING", {"default": ""}),
+        }, "optional": {
+            "model": (files,),
         }}
 
     RETURN_TYPES = ("CCSRMODEL",)
@@ -567,44 +566,16 @@ class LoadCCSRModelTensorRT:
     FUNCTION = "loadmodel"
     CATEGORY = "CCSR"
 
-    def loadmodel(self, model, engine_path=""):
+    def loadmodel(self, engine_path="", model=None):
         device = mm.get_torch_device()
         offload_device = mm.unet_offload_device()
         dtype = torch.float16
 
-        # search models/CCSR first, then models/unet (extra_model_paths maps unet->checkpoints)
-        safetensors_path = None
-        for base in ("CCSR", "unet", "checkpoints"):
-            cand = os.path.join(folder_paths.models_dir, base, model)
-            if os.path.exists(cand):
-                safetensors_path = cand
-                break
-        if safetensors_path is None:
-            raise FileNotFoundError(f"CCSR model not found under models/: {model}")
-
         config_path = os.path.join(script_directory, "configs/model/ccsr_stage2.yaml")
         config = OmegaConf.load(config_path)
+        ccsr = instantiate_from_config(config)
 
-        is_int8 = checkpoint_is_hswq_int8(safetensors_path) if _INT8_AVAILABLE else False
-        if is_int8:
-            print(f"[CCSR-TRT] INT8 checkpoint: {model} (UNet/CN handled by TRT engine)", flush=True)
-            mixed_ops = get_mixed_ops(torch.float16)
-            with _ops_swap(mixed_ops):
-                ccsr = instantiate_from_config(config)
-            sd = comfy.utils.load_torch_file(safetensors_path)
-            prepare_state_for_comfy_ops(sd)
-            ccsr.load_state_dict(sd, strict=False)
-        else:
-            ccsr = instantiate_from_config(config)
-            sd = comfy.utils.load_torch_file(safetensors_path)
-            ccsr.load_state_dict(sd, strict=False)
-        del sd
-        mm.soft_empty_cache()
-        ccsr = ccsr.to(device, dtype=dtype).eval()
-        for m in ccsr.modules():
-            if hasattr(m, "use_checkpoint"):
-                m.use_checkpoint = False
-
+        # resolve engine first (needed to know the aux location)
         engine = None
         if engine_path:
             if not os.path.exists(engine_path):
@@ -616,6 +587,46 @@ class LoadCCSRModelTensorRT:
             if ep:
                 engine = get_engine(ep, device)
                 print(f"[CCSR-TRT] auto engine: {ep}", flush=True)
+        if engine is None:
+            raise FileNotFoundError("No TRT engine available")
+
+        # aux weights: VAE + cond_encoder bundled beside the engine
+        aux_candidates = []
+        if engine_path:
+            aux_candidates.append(os.path.join(os.path.dirname(os.path.abspath(engine_path)), "ccsr_trt_aux.safetensors"))
+        ep = engine.path
+        aux_candidates.append(os.path.join(os.path.dirname(os.path.abspath(ep)), "ccsr_trt_aux.safetensors"))
+        aux_candidates.append(os.path.join(script_directory, "trt_engines", "ccsr_trt_aux.safetensors"))
+
+        aux_path = next((a for a in aux_candidates if os.path.exists(a)), None)
+        if aux_path is None and model and model != "(engine only)":
+            # fall back to a full checkpoint: load VAE/cond_encoder keys from it
+            for base in ("CCSR", "unet", "checkpoints"):
+                cand = os.path.join(folder_paths.models_dir, base, model)
+                if os.path.exists(cand):
+                    aux_path = cand
+                    break
+        if aux_path is None:
+            raise FileNotFoundError("No CCSR aux weights found (need ccsr_trt_aux.safetensors beside the engine, or a checkpoint)")
+
+        is_int8 = checkpoint_is_hswq_int8(aux_path) if _INT8_AVAILABLE else False
+        sd = comfy.utils.load_torch_file(aux_path)
+        if is_int8:
+            prepare_state_for_comfy_ops(sd)
+            # build with int8-capable ops so UNet/CN layers accept quant packs
+            mixed_ops = get_mixed_ops(torch.float16)
+            with _ops_swap(mixed_ops):
+                ccsr2 = instantiate_from_config(config)
+            ccsr2.load_state_dict(sd, strict=False)
+            ccsr = ccsr2
+        else:
+            ccsr.load_state_dict(sd, strict=False)
+        del sd
+        mm.soft_empty_cache()
+        ccsr = ccsr.to(device, dtype=dtype).eval()
+        for m in ccsr.modules():
+            if hasattr(m, "use_checkpoint"):
+                m.use_checkpoint = False
 
         wrapped = CCSRTRTModelWrapper(ccsr, engine)
         ccsr_model = {"model": wrapped, "dtype": dtype, "trt": engine is not None}
