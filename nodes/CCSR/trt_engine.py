@@ -75,9 +75,17 @@ class CCSRTRTEngine:
 
 def get_engine(engine_path: str, device: torch.device):
     key = os.path.abspath(engine_path)
-    if key not in _ENGINES:
-        _ENGINES[key] = CCSRTRTEngine(key, device)
-    return _ENGINES[key]
+    eng = _ENGINES.get(key)
+    # reload if missing or was released (release() deletes ctx/engine/runtime)
+    if eng is None or not hasattr(eng, "ctx"):
+        if eng is not None:
+            try:
+                eng.release()
+            except Exception:
+                pass
+        eng = CCSRTRTEngine(key, device)
+        _ENGINES[key] = eng
+    return eng
 
 
 def release_trt_engines():
