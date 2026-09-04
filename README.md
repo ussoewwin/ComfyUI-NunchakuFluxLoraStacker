@@ -52,6 +52,7 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
 11. **CCSR** (three nodes: `DownloadAndLoadCCSRModel`, `CCSR_Model_Select`, `CCSR_Upscale`) — Load CCSR models (Hugging Face auto-download or local checkpoints) and perform high-quality image upscaling with tiled sampling and color correction (see **[CCSR nodes](#ccsr-nodes)** below).
     
     <img src="png/ccsr.png" width="400">
+<img src="png/ccsrtensor.png" width="400">
 
 12. **Nunchaku Resolution Selector** (`NunchakuResolutionSelector`) — Pick width/height from Flux1-style aspect presets (or custom size), emit hires dimensions, an empty **16-channel** latent, and an info string (see **[Nunchaku Resolution Selector](#nunchaku-resolution-selector-nunchakuresolutionselector)** below).
 
@@ -326,6 +327,10 @@ The CCSR implementation here started from **[kijai/ComfyUI-CCSR](https://github.
 | **DownloadAndLoadCCSRModel** | Downloads pre-trained CCSR models (`real-world_ccsr-fp16.safetensors` / `real-world_ccsr-fp32.safetensors`) from Hugging Face or loads them if already present under `models/CCSR/`. Returns **`ccsr_model`** (`CCSRMODEL`). |
 | **CCSR_Model_Select** | Selects and loads a local CCSR checkpoint from the standard ComfyUI `checkpoints` directory. Returns **`ccsr_model`** (`CCSRMODEL`). |
 | **CCSR_Upscale** | Performs image upscaling using the loaded CCSR model. Supports customizable steps, tiling parameter controls (`ccsr_tiled_mixdiff` / `ccsr_tiled_vae_gaussian_weights`), and color correction options (`adain` / `wavelet`). Returns **`upscaled_image`** (`IMAGE`). |
+| **LoadCCSRModelTensorRT** | Engine-only loader. Selects a TRT engine from `nodes/CCSR/trt_engines/*.rtxplan`; ControlNet+UNet run on TensorRT (~24 ms/step vs ~113 ms fp16). Aux weights (`ccsr_trt_aux.safetensors`, VAE + cond_encoder) are auto-loaded beside the engine, so no full checkpoint is required. Returns **`ccsr_model`** (`CCSRMODEL`). |
+| **CCSR_Upscale_TRT** | TRT-accelerated upscale (fixed tile 512 / latent 64x64 to match the static engine shape; other sizes fall back to fp16). Returns **`upscaled_image`** (`IMAGE`). |
+
+**ConvRot INT8 support** — `CCSR_Model_Select` / `DownloadAndLoadCCSRModel` also accept a ConvRot INT8 checkpoint (`real-world_ccsr_convrot_int8.safetensors`). The UNet (ConvRot Linear) and ControlNet (plain INT8 Conv2d) are quantized, cutting the file from 3.2 GB to ~2.0 GB and saving ~1.1 GiB VRAM; VAE / cond_encoder stay fp16. The loader auto-detects INT8 (`comfy_quant` markers) and builds with quantized-loading ops. `steps` is the effective diffusion step count: the t_max/t_min band design is preserved while the schedule is densified so the truncated range contains exactly `steps` timesteps.
 
 ---
 
