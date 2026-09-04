@@ -9,8 +9,7 @@ Runtime requirements (mirrors the SeedVR2 TensorRT installer pattern):
   - tensorrt-rtx  : engine runtime (nodes/CCSR/trt_engine.py imports tensorrt_rtx)
   - triton-windows: tensorrt-rtx dependency on Windows
   - onnx / onnxscript / polygraphy: needed to *build* an engine from the
-    fp16 checkpoint (scripts/build_ccsr_trt_engine.py); harmless if present,
-    and skipped here when already installed.
+    fp16 checkpoint; harmless if present, skipped here when already installed.
 
 Everything is installed with --no-deps so this hook never upgrades the
 CUDA/torch ecosystem underneath ComfyUI.
@@ -32,10 +31,14 @@ TRT_STACK = [
 ]
 
 ENGINE_DIR = ROOT / "nodes" / "CCSR" / "trt_engines"
-ENGINE_HINT = (
-    "ccsr_apply_f16io.rtxplan + ccsr_trt_aux.safetensors in "
-    "nodes/CCSR/trt_engines/ (see README 'TensorRT engine nodes')"
-)
+
+# Prebuilt engine / aux weights / ConvRot INT8 model (Hugging Face)
+HF_REPO = "https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine"
+HF_FILES = {
+    "ccsr_apply_f16io.rtxplan": "nodes/CCSR/trt_engines/",
+    "ccsr_trt_aux.safetensors": "nodes/CCSR/trt_engines/",
+    "real-world_ccsr_convrot_int8.safetensors": "ComfyUI/models/unet/ (fp16 path)",
+}
 
 
 def log_step(message: str) -> None:
@@ -83,15 +86,17 @@ def main() -> None:
         log_step("CCSR TRT engine found in nodes/CCSR/trt_engines/")
     else:
         log_step("CCSR TRT engine NOT found")
-        print(
-            "[ComfyUI-NunchakuFluxLoraStacker] The TensorRT nodes need an engine.\n"
-            f"  missing: {', '.join(missing)}\n"
-            f"  expected location: {ENGINE_DIR}\n"
-            f"  Build it from an fp16 CCSR checkpoint with:\n"
-            f"    python scripts/build_ccsr_trt_engine.py --checkpoint <real-world_ccsr-fp16.safetensors>\n"
-            "  (fp16 / INT8 PyTorch CCSR nodes work without the engine.)",
-            flush=True,
-        )
+        lines = [
+            "[ComfyUI-NunchakuFluxLoraStacker] The TensorRT nodes need an engine.",
+            f"  missing: {', '.join(missing)}",
+            f"  expected location: {ENGINE_DIR}",
+            "  Download the prebuilt engine + aux weights (and the ConvRot INT8 model) from:",
+            f"    {HF_REPO}",
+        ]
+        for fname, dest in HF_FILES.items():
+            lines.append(f"    - {fname} -> {dest}")
+        lines.append("  (fp16 / INT8 PyTorch CCSR nodes work without the engine.)")
+        print("\n".join(lines), flush=True)
 
     print("[ComfyUI-NunchakuFluxLoraStacker] install.py done.", flush=True)
 
