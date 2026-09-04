@@ -525,7 +525,11 @@ class SpacedSampler:
             return torch.tile(torch.tensor(weights, dtype=torch.float32, device=next(self.model.parameters()).device), (nbatches, 4, 1, 1))
 
         # make sampling parameters (e.g. sigmas)
-        self.make_schedule(num_steps=steps)
+        # `steps` is the effective diffusion step count. Keep the t_max/t_min
+        # band (quality design) but densify the schedule so the truncated range
+        # still contains exactly `steps` timesteps.
+        _band = max(t_max - t_min, 1e-3)
+        self.make_schedule(num_steps=max(int(round(steps / _band)), steps))
 
         device = next(self.model.parameters()).device
         b, _, h, w = shape
@@ -553,7 +557,7 @@ class SpacedSampler:
         # predict noise for each tile
         tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
         for hi, hi_end, wi, wi_end in tiles_iterator:
-            tiles_iterator.set_description(f"[init t=999] tile ({hi} {hi_end}) ({wi} {wi_end})")
+            tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
             # noisy latent of this diffusion process (tile) at this step
             tile_img = img[:, :, hi:hi_end, wi:wi_end]
             # prepare condition for this tile
@@ -587,7 +591,9 @@ class SpacedSampler:
 
         time_range = np.flip(self.timesteps)  # [1000, 950, 900, ...]
         total_steps = len(time_range)
-        total_steps_use = total_steps
+        time_range = time_range[-int(round(total_steps * t_max)):]
+        total_steps_use = len(time_range)
+        time_range = time_range[:-int(round(total_steps * t_min))]
         iterator = tqdm(time_range, desc="Spaced Sampler", total=total_steps)
         pbar = comfy.utils.ProgressBar(total_steps // 3)
         # sampling loop
@@ -598,7 +604,7 @@ class SpacedSampler:
             # predict noise for each tile
             tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
             for hi, hi_end, wi, wi_end in tiles_iterator:
-                tiles_iterator.set_description(f"[step {i + 1}/{total_steps}] tile ({hi} {hi_end}) ({wi} {wi_end})")
+                tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
                 # noisy latent of this diffusion process (tile) at this step
                 tile_img = img[:, :, hi:hi_end, wi:wi_end]
                 # prepare condition for this tile
@@ -684,7 +690,11 @@ class SpacedSampler:
             return coords
 
         # make sampling parameters (e.g. sigmas)
-        self.make_schedule(num_steps=steps)
+        # `steps` is the effective diffusion step count. Keep the t_max/t_min
+        # band (quality design) but densify the schedule so the truncated range
+        # still contains exactly `steps` timesteps.
+        _band = max(t_max - t_min, 1e-3)
+        self.make_schedule(num_steps=max(int(round(steps / _band)), steps))
 
         device = next(self.model.parameters()).device
         b, _, h, w = shape
@@ -708,7 +718,7 @@ class SpacedSampler:
         # predict noise for each tile
         tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
         for hi, hi_end, wi, wi_end in tiles_iterator:
-            tiles_iterator.set_description(f"[init t=999] tile ({hi} {hi_end}) ({wi} {wi_end})")
+            tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
             # noisy latent of this diffusion process (tile) at this step
             tile_img = img[:, :, hi:hi_end, wi:wi_end]
             # prepare condition for this tile
@@ -740,7 +750,9 @@ class SpacedSampler:
 
         time_range = np.flip(self.timesteps)  # [1000, 950, 900, ...]
         total_steps = len(time_range)
-        total_steps_use = total_steps
+        time_range = time_range[-int(round(total_steps * t_max)):]
+        total_steps_use = len(time_range)
+        time_range = time_range[:-int(round(total_steps * t_min))]
         iterator = tqdm(time_range, desc="Spaced Sampler", total=total_steps)
 
         # sampling loop
@@ -752,7 +764,7 @@ class SpacedSampler:
             # predict noise for each tile
             tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
             for hi, hi_end, wi, wi_end in tiles_iterator:
-                tiles_iterator.set_description(f"[step {i + 1}/{total_steps}] tile ({hi} {hi_end}) ({wi} {wi_end})")
+                tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
                 # noisy latent of this diffusion process (tile) at this step
                 tile_img = img[:, :, hi:hi_end, wi:wi_end]
                 # prepare condition for this tile
@@ -875,7 +887,7 @@ class SpacedSampler:
         # predict noise for each tile
         tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
         for hi, hi_end, wi, wi_end in tiles_iterator:
-            tiles_iterator.set_description(f"[init t=999] tile ({hi} {hi_end}) ({wi} {wi_end})")
+            tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
             # noisy latent of this diffusion process (tile) at this step
             tile_img = img[:, :, hi:hi_end, wi:wi_end]
             # prepare condition for this tile
@@ -907,7 +919,9 @@ class SpacedSampler:
 
         time_range = np.flip(self.timesteps)  # [1000, 950, 900, ...]
         total_steps = len(time_range)
-        total_steps_use = total_steps
+        time_range = time_range[total_steps // (tao_steps - 1):]
+        total_steps_use = len(time_range)
+        # time_range = time_range[:-total_steps//(tao_steps-1)]
         iterator = tqdm(time_range, desc="Spaced Sampler", total=total_steps)
 
         # sampling loop
@@ -919,7 +933,7 @@ class SpacedSampler:
             # predict noise for each tile
             tiles_iterator = tqdm(_sliding_windows(h, w, tile_size // 8, tile_stride // 8))
             for hi, hi_end, wi, wi_end in tiles_iterator:
-                tiles_iterator.set_description(f"[step {i + 1}/{total_steps}] tile ({hi} {hi_end}) ({wi} {wi_end})")
+                tiles_iterator.set_description(f"Process tile with location ({hi} {hi_end}) ({wi} {wi_end})")
                 # noisy latent of this diffusion process (tile) at this step
                 tile_img = img[:, :, hi:hi_end, wi:wi_end]
                 # prepare condition for this tile
@@ -1029,7 +1043,9 @@ class SpacedSampler:
 
         time_range = np.flip(self.timesteps)  # [1000, 950, 900, ...]
         total_steps = len(time_range)
-        total_steps_use = total_steps
+        time_range = time_range[-int(round(total_steps * t_max)):]
+        total_steps_use = len(time_range)
+        time_range = time_range[:-int(round(total_steps * t_min))]
         iterator = tqdm(time_range, desc="Spaced Sampler", total=total_steps)
         pbar = comfy.utils.ProgressBar(total_steps // 3)
 
@@ -1099,6 +1115,8 @@ class SpacedSampler:
         )
 
         time_range = np.flip(self.timesteps)  # [1000, 950, 900, ...]
+        total_steps = len(time_range)
+        time_range = time_range[-int(round(total_steps * t_max)):]
         total_steps = len(time_range)
         iterator = tqdm(time_range, desc="Spaced Sampler", total=total_steps)
 
