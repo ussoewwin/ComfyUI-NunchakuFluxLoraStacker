@@ -30,3 +30,37 @@ The model (https://drive.google.com/drive/folders/1jM1mxDryPk9CTuFTvYcraP2XIVzbP
 I suggest installing with the comfyui-manager:
 ![image](https://github.com/kijai/ComfyUI-CCSR/assets/40791699/b7214913-4789-4da2-b05a-4ff18e6619b2)
 
+
+## ConvRot INT8 support (VRAM reduction)
+
+The fp16 nodes (`CCSR_Model_Select` / `DownloadAndLoadCCSRModel`) also accept a
+**ConvRot INT8** checkpoint. It quantizes the UNet (ConvRot Linear) and the
+ControlNet (plain INT8 Conv2d — ComfyUI has no ConvRot backend for 2D convs),
+which cuts checkpoint size from 3.2 GB to ~2.0 GB and reduces VRAM by roughly
+1.1 GiB while keeping the surrounding modules (VAE, cond_encoder) in fp16.
+
+Convert the fp16 checkpoint with the hswq script (Conv2d is packed plain INT8):
+
+```
+python convert_convrot_int8_ccsr.py real-world_ccsr-fp16.safetensors \
+    --out real-world_ccsr_convrot_int8.safetensors
+```
+
+Put it under `ComfyUI/models/unet` (or `models/CCSR` / `checkpoints`) and select
+it in `CCSR_Model_Select`. The loader auto-detects INT8 (`comfy_quant` markers)
+and builds the model with quantized-loading ops.
+
+## TensorRT engine nodes
+
+- **Load CCSR Model (TensorRT)** — engine-only loader. Select the engine file
+  from `nodes/CCSR/trt_engines/*.rtxplan`; the ControlNet+UNet are executed by
+  the TRT engine (built from the fp16 checkpoint, ~24 ms/step vs ~113 ms fp16).
+  Aux weights (`ccsr_trt_aux.safetensors`, VAE + cond_encoder) are loaded
+  automatically from the same folder, so no full checkpoint is required.
+- **CCSR Upscale (TRT)** — same upscale flow as the fp16 node, fixed tile 512
+  (latent 64x64) to match the static engine shape; non-matching sizes fall back
+  to fp16.
+
+`steps` is the effective diffusion step count: the t_max/t_min band design is
+kept, but the schedule is densified so the truncated range still contains
+exactly `steps` timesteps.
