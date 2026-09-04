@@ -11,6 +11,17 @@ from .model.ccsr_stage1 import ControlLDM
 
 from .utils.common import instantiate_from_config, load_state_dict
 
+try:
+    from .ccsr_int8 import (
+        checkpoint_is_hswq_int8,
+        get_mixed_ops,
+        _ops_swap,
+        prepare_state_for_comfy_ops,
+    )
+    _INT8_AVAILABLE = True
+except Exception:
+    _INT8_AVAILABLE = False
+
 import comfy.model_management as mm
 import comfy.utils
 import folder_paths
@@ -380,17 +391,28 @@ class CCSR_Model_Select:
         ckpt_path = folder_paths.get_full_path("checkpoints", ckpt_name)
         config_path = os.path.join(script_directory, "configs/model/ccsr_stage2.yaml")
         dtype = torch.float16 if mm.should_use_fp16() and not mm.is_device_mps(device) else torch.float32
-        
+
+        is_int8 = checkpoint_is_hswq_int8(ckpt_path) if _INT8_AVAILABLE else False
         if not hasattr(self, "model") or self.model is None:
             config = OmegaConf.load(config_path)
-            self.model = instantiate_from_config(config)
-            
-            load_state_dict(self.model, comfy.utils.load_torch_file(ckpt_path), strict=True)
+            if is_int8:
+                print(f"[CCSR] INT8 checkpoint detected: {ckpt_name} - using mixed_precision ops", flush=True)
+                mixed_ops = get_mixed_ops(torch.float16)
+                with _ops_swap(mixed_ops):
+                    self.model = instantiate_from_config(config)
+                sd = comfy.utils.load_torch_file(ckpt_path)
+                prepare_state_for_comfy_ops(sd)
+                load_state_dict(self.model, sd, strict=True)
+                del sd
+            else:
+                self.model = instantiate_from_config(config)
+                load_state_dict(self.model, comfy.utils.load_torch_file(ckpt_path), strict=True)
             # reload preprocess model if specified
 
         ccsr_model = {
             'model': self.model, 
-            'dtype': dtype
+            'dtype': dtype,
+            'int8': is_int8,
             }
         return (ccsr_model,)
     
@@ -399,9 +421,10 @@ class DownloadAndLoadCCSRModel:
     def INPUT_TYPES(s):
         return {"required": {
             "model": (
-                    [ 
+                    [
                     'real-world_ccsr-fp16.safetensors',
-                    'real-world_ccsr-fp32.safetensors'
+                    'real-world_ccsr-fp32.safetensors',
+                    'real-world_ccsr_convrot_int8.safetensors',
                     ],
                 ),
             },
@@ -431,17 +454,26 @@ class DownloadAndLoadCCSRModel:
         config_path = os.path.join(script_directory, "configs/model/ccsr_stage2.yaml")
         config = OmegaConf.load(config_path)
 
-        model = instantiate_from_config(config)
-
-        sd = comfy.utils.load_torch_file(safetensors_path)
-      
-        model.load_state_dict(sd, strict=False)
+        is_int8 = checkpoint_is_hswq_int8(safetensors_path) if _INT8_AVAILABLE else False
+        if is_int8:
+            print(f"[CCSR] INT8 checkpoint detected: {model} - using mixed_precision ops", flush=True)
+            mixed_ops = get_mixed_ops(torch.float16)
+            with _ops_swap(mixed_ops):
+                model = instantiate_from_config(config)
+            sd = comfy.utils.load_torch_file(safetensors_path)
+            prepare_state_for_comfy_ops(sd)
+            model.load_state_dict(sd, strict=False)
+        else:
+            model = instantiate_from_config(config)
+            sd = comfy.utils.load_torch_file(safetensors_path)
+            model.load_state_dict(sd, strict=False)
         del sd
         mm.soft_empty_cache()
         
         ccsr_model = {
             'model': model, 
             'dtype': dtype,
+            'int8': is_int8,
             }
 
         return (ccsr_model,)
