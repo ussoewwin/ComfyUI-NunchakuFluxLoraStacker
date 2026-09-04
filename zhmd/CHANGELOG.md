@@ -9,6 +9,8 @@
 
 ## 发布历史
 
+- v2.0.2 - CCSR ConvRot INT8 与 TensorRT 加速：CCSR 的 fp16 节点（`CCSR_Model_Select` / `DownloadAndLoadCCSRModel`）现在支持 **ConvRot INT8** 检查点 - UNet（ConvRot Linear）与 ControlNet（普通 INT8 Conv2d）被量化（3.2 GB → 约 2.0 GB 文件，VRAM 节省约 1.1 GiB；VAE / cond_encoder 保持 fp16），通过 `comfy_quant` 自动检测并以量化加载算子构建。新增 **TensorRT** 节点（`LoadCCSRModelTensorRT`、`CCSR_Upscale_TRT`）：仅引擎加载（`nodes/CCSR/trt_engines/` 中的引擎 + 引擎旁的 aux VAE/cond_encoder 权重，无需完整检查点），ControlNet+UNet 在 TensorRT 上运行（约 24 ms/步 vs fp16 约 113 ms，约 4.7 倍）。`steps` 现在是实际扩散步数：保留 t_max/t_min 频段设计，同时加密调度，使截断后的范围恰好包含 `steps` 个时间步。（[发布说明](v2.0.2.md)）
+
 - v2.0.1 — Model Patch Loader 对 QwenImage 的 ConvRot INT8 支持：**Model Patch Loader**（`ModelPatchLoaderCustom`）现在将 ConvRot INT8 路径（`comfy_quant` 检测 → `mixed_precision_ops` + BF16 图）应用于 **所有** 模型补丁类型，而非仅限 Z-Image。此前加载 INT8 `QwenImageBlockWiseControlNet`（如 `qwen_image_canny_diffsynth_controlnet_convrot_int8.safetensors`）时会以 `manual_cast` + `weight_dtype()=int8` 构建图，将原始 INT8 权重作为普通 Parameter 加载，对 Nunchaku Qwen Image 产生噪声图像。现在权重以 **INT8 形式保存在 VRAM**（已验证：1136 MB vs BF16 2266 MB，约省 50%），前向走 comfy-kitchen `int8_linear` 内核（含在线 ConvRot 旋转），与 HSWQ 模型补丁加载器一致。（[发行说明](v2.0.1.md)）
 
 - v2.0.0 — Model Patch Loader ConvRot INT8：**Model Patch Loader**（`ModelPatchLoaderCustom`）现在可加载 comfy 原生 **ConvRot INT8** 量化的 Z-Image ControlNet 检查点（如 `Z-Image-Turbo-Fun-Controlnet-Union-2.1-lite-2601-8steps_convrot_int8.safetensors`）。通过 `comfy_quant` 元数据自动检测 INT8，以 BF16 构建模块图并由 `mixed_precision_ops` 接入量化权重，因此权重始终以 **INT8 形式保存在内存中**，推理走 comfy-kitchen 的 `int8_linear` 内核（含在线 ConvRot 激活旋转）。GPU 加载与 CPU 卸载均支持；BF16 检查点保持原有路径。修复了 `Only Tensors of floating point and complex dtype can require gradients` 崩溃（[发行说明](v2.0.0.md)）
