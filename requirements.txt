@@ -25,3 +25,10 @@ omegaconf
 einops
 pytorch-lightning>=2.2.1
 open-clip-torch>=2.23.0
+
+# CCSR TensorRT upscaler stack (nodes/CCSR)
+triton-windows==3.8.0.post28
+tensorrt-rtx==1.6.1.120
+onnx==1.22.0
+onnxscript==0.7.1
+polygraphy==0.53.4
