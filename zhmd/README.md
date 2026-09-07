@@ -49,7 +49,7 @@
 
 10. **ControlAltAI**（11 个节点）— 我的 Python 3.13 分支，现位于 `nodes/controlaltai/`（参见下方 **[ControlAltAI 节点](#controlaltai-节点)**）。
 
-11. **CCSR**（三个节点：`DownloadAndLoadCCSRModel`、`CCSR_Model_Select`、`CCSR_Upscale`）— 加载 CCSR 模型（Hugging Face 自动下载或本地检查点），支持分块采样与颜色校正，执行高质量图像超分辨率放大（参见下方 **[CCSR 节点](#ccsr-节点)**）。
+11. **CCSR (TensorRT)**（两个节点：`LoadCCSRModelTensorRT`、`CCSR_Upscale_TRT`）— CCSR ControlNet+UNet 的 TRT 引擎加速（纯引擎加载，VAE/cond_encoder 辅助权重，相比 fp16 PyTorch 约 1.4 倍速）。预编译引擎与辅助权重：<https://huggingface.co/ussoewwin/CCSR-TensorRT-Engine>（参见下方 **[CCSR 节点](#ccsr-节点)**）。
     
     <img src="../png/ccsr.png" width="400">
 
@@ -68,12 +68,41 @@
 
 ## 安装
 
+### 标准安装
+
 1. 在您的 `ComfyUI/custom_nodes` 目录中克隆仓库：
    ```bash
    cd ComfyUI/custom_nodes
    git clone https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker.git
    ```
-2. 重启 ComfyUI 以加载节点。
+2. 在您的 ComfyUI 环境中安装基础依赖项：
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. 重启 ComfyUI 以加载节点。
+
+### CCSR TensorRT 加速配置（自动化）
+
+CCSR 超分辨率放大采用 NVIDIA TensorRT-RTX 加速。您可以通过以下任一方式自动配置完整的 TensorRT 运行环境：
+
+- **方法 1（一键批处理文件 — Windows 推荐）**：
+  双击仓库根目录下的 **`Install TensorRT CCSR.bat`**。
+  - 自动定位 ComfyUI 的内置 Python 环境（`python_embeded\python.exe`）。
+  - 使用 `--no-deps` 安全安装经过验证的 TensorRT 依赖栈（`tensorrt-rtx==1.6.1.120`、最新 `triton-windows==3.8.0.post28`、`onnx==1.22.0`、`onnxscript==0.7.1`、`polygraphy==0.53.4`），完全保护 ComfyUI 底层的 PyTorch/CUDA 环境。
+  - 自动从 Hugging Face 下载缺失的引擎与辅助权重文件（`ccsr_apply_f16io.rtxplan` 和 `ccsr_trt_aux.safetensors`）至 `nodes/CCSR/trt_engines/`。
+  - 自动运行就绪验证（`scripts/verify_install.py`）并将日志记录到 `outputs/install.log`。
+
+- **方法 2（ComfyUI-Manager）**：
+  通过 ComfyUI-Manager 安装或更新本插件时，会自动调用 `install.py` 安装运行时栈并拉取预编译引擎文件。
+
+- **方法 3（手动命令行运行）**：
+  ```bash
+  python install.py
+  ```
+  随时验证安装状态：
+  ```bash
+  python scripts/verify_install.py
+  ```
 
 ## 使用方法
 
@@ -317,15 +346,34 @@ Florence-2 特定包包括 **transformers**、**accelerate**、**peft**、**timm
 
 ### 上游和集成
 
-此处的 CCSR 实现源自 **[kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR)**。为支持最新的 ComfyUI 环境和 **Python 3.13** 维护了一个单独的分支；该分支已**合并到本仓库**的 `nodes/CCSR/` 下，**以减少我自己的独立仓库维护**。
+此处的 CCSR 实现源自 **[kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR)**，一个基于 **[csslc/CCSR](https://github.com/csslc/CCSR)** (Apache-2.0) 的 ComfyUI 封装。为支持最新的 ComfyUI 环境和 **Python 3.13** 维护了一个单独的分支；该分支已**合并到本仓库**的 `nodes/CCSR/` 下，**以减少我自己的独立仓库维护**。
+
+- 添加并验证了 **fp16 检查点支持**（Hugging Face `real-world_ccsr-fp16.safetensors`），并在本节点包内端到端验证了完整的 CCSR 流水线（分块 VAE 编码/解码、ControlNet 条件、UNet 去噪）。
+- **apply-model (ControlNet + UNet) 已导出为静态形状 ONNX**（固定 64x64 latent = 512 px 瓦片，空文本上下文 `(1,2,1024)`），转换为 **fp16 I/O**，并构建为 **TensorRT-RTX 引擎**（`ccsr_apply_f16io.rtxplan`）。该引擎在 GPU 上完整运行条件去噪，且在 ControlNet 和 UNet 之间不离开计算图（相比 fp16 PyTorch 约快 1.4 倍）。
+- 剩余非引擎部分（VAE + cond_encoder）被打包为**辅助权重**（`ccsr_trt_aux.safetensors`），因此 TRT 加载器**无需完整检查点**。
+- UNet/ControlNet 曾为 PyTorch 路径添加了 **ConvRot INT8** 量化，但由于 TensorRT 推理比 fp16 或 INT8 PyTorch 既**更快又更轻量**，因此移除了 PyTorch 节点 —— 本仓库现提供**纯 TensorRT** CCSR 路径（`LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`）。
 
 ### 节点参考
 
+TensorRT 执行路径（纯引擎，无需完整检查点）。ControlNet+UNet 去噪在 TensorRT 引擎上运行；VAE + cond_encoder 通过引擎同目录加载的辅助权重在 PyTorch fp16 上运行。
+
+**模型 / 引擎下载**（Hugging Face）：
+- TensorRT 引擎仓库：<https://huggingface.co/ussoewwin/CCSR-TensorRT-Engine>
+- 检查点仓库：<https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine>
+
+| 文件 | 存放位置 |
+|------|-----------|
+| `ccsr_apply_f16io.rtxplan` | `nodes/CCSR/trt_engines/` |
+| `ccsr_trt_aux.safetensors` | `nodes/CCSR/trt_engines/` |
+
+> 自动配置：运行 `install.py`（或双击 `Install TensorRT CCSR.bat`）会自动安装经过验证的 TensorRT-RTX 依赖栈（`tensorrt-rtx==1.6.1.120`、最新 `triton-windows==3.8.0.post28`、`onnx==1.22.0`、`onnxscript==0.7.1`、`polygraphy==0.53.4`）并自动下载缺失的引擎与辅助权重文件（`ccsr_apply_f16io.rtxplan`、`ccsr_trt_aux.safetensors`）。
+
+`steps` 为有效扩散步数：保留了 t_max/t_min 区间设计，但加密了调度采样，使截断区间恰好包含 `steps` 个时间步。
+
 | 节点 | 角色 |
 |------|------|
-| **DownloadAndLoadCCSRModel** | 从 Hugging Face 下载预训练的 CCSR 模型（`real-world_ccsr-fp16.safetensors` / `real-world_ccsr-fp32.safetensors`），或者在本地已存在于 `models/CCSR/` 下时直接加载。返回 **`ccsr_model`** (`CCSRMODEL`)。 |
-| **CCSR_Model_Select** | 从标准 ComfyUI `checkpoints` 目录选择并加载本地 CCSR 权重文件。返回 **`ccsr_model`** (`CCSRMODEL`)。 |
-| **CCSR_Upscale** | 使用已加载的 CCSR 模型执行图像超分辨率放大。支持自定义步数、分块参数控制（`ccsr_tiled_mixdiff` / `ccsr_tiled_vae_gaussian_weights`）以及颜色校正选项（`adain` / `wavelet`）。返回 **`upscaled_image`** (`IMAGE`)。 |
+| **LoadCCSRModelTensorRT** | 纯引擎加载器。从 `nodes/CCSR/trt_engines/*.rtxplan` 选择 TRT 引擎；ControlNet+UNet 在 TensorRT 上运行（相比 fp16 PyTorch 约 1.4 倍速）。辅助权重从同目录自动加载。返回 **`ccsr_model`** (`CCSRMODEL`)。 |
+| **CCSR_Upscale_TRT** | TRT 加速放大（固定 512 瓦片 / 64x64 latent，与静态引擎形状完全匹配）。返回 **`upscaled_image`** (`IMAGE`)。 |
 
 ---
 

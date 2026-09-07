@@ -12,9 +12,10 @@ both faster and lighter.)
 
 ## Model / engine download
 
-Prebuilt engine, aux weights and the ConvRot INT8 checkpoint (Hugging Face):
+Prebuilt engine, aux weights and checkpoints (Hugging Face):
 
-<https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine>
+- Main TensorRT Engine repo: <https://huggingface.co/ussoewwin/CCSR-TensorRT-Engine>
+- Checkpoint repo: <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine>
 
 | File | Put it in |
 |------|-----------|
@@ -26,8 +27,8 @@ The engine dropdown in **Load CCSR Model (TensorRT)** auto-lists every
 automatically from the same folder.
 
 > Requires an RTX GPU and the TensorRT-RTX runtime (`tensorrt-rtx`).
-> `install.py` installs the runtime stack; the engine itself is not rebuilt
-> during install (prebuilt engines are published on Hugging Face).
+> `install.py` (or running `Install TensorRT CCSR.bat`) automatically installs
+> the TensorRT-RTX runtime stack and downloads any missing engine artifacts.
 
 ## Nodes
 

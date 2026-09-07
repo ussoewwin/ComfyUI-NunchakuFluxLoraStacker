@@ -17,11 +17,15 @@ import folder_paths
 from nodes import ImageScaleBy
 from nodes import ImageScale
 
+_TRT_IMPORT_ERROR = None
 try:
     from .trt_engine import get_engine, release_trt_engines
     _TRT_AVAILABLE = True
-except Exception:
+except Exception as exc:
     _TRT_AVAILABLE = False
+    _TRT_IMPORT_ERROR = exc
+    get_engine = None
+    release_trt_engines = None
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 
@@ -306,6 +310,11 @@ class LoadCCSRModelTensorRT:
     CATEGORY = "CCSR"
 
     def loadmodel(self, engine):
+        if not _TRT_AVAILABLE:
+            raise RuntimeError(
+                f"TensorRT-RTX runtime is not available: {_TRT_IMPORT_ERROR}\n"
+                "Please run install.py or 'Install TensorRT CCSR.bat' to install the TensorRT-RTX stack."
+            )
         device = mm.get_torch_device()
         offload_device = mm.unet_offload_device()
         dtype = torch.float16

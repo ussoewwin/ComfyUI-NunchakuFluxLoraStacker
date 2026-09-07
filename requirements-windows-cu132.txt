@@ -1,0 +1,7 @@
+# Known-good Windows / CUDA 13.2 TensorRT stack for ComfyUI-NunchakuFluxLoraStacker (CCSR TRT)
+# PyTorch packages (torch / torchvision) are managed by ComfyUI environment.
+triton-windows==3.8.0.post28
+tensorrt-rtx==1.6.1.120
+onnx==1.22.0
+onnxscript==0.7.1
+polygraphy==0.53.4
