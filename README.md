@@ -75,7 +75,7 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
    cd ComfyUI/custom_nodes
    git clone https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker.git
    ```
-2. Install base dependencies into your ComfyUI environment:
+2. Install dependencies into your ComfyUI environment:
    ```bash
    pip install -r requirements.txt
    ```
@@ -83,12 +83,12 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
 
 ### CCSR TensorRT Acceleration Setup (Automated)
 
-The CCSR upscaler runs with NVIDIA TensorRT-RTX acceleration. You can install and configure the entire TensorRT stack automatically using any of the following methods:
+The CCSR upscaler runs with NVIDIA TensorRT-RTX acceleration. You can install all dependencies and configure the TensorRT acceleration automatically using any of the following methods:
 
 - **Method 1 (One-Click Batch File — Recommended for Windows)**:
   Double-click **`Install TensorRT CCSR.bat`** in the repository root.
   - Automatically locates your ComfyUI embedded Python environment (`python_embeded\python.exe`).
-  - Installs the validated TensorRT stack (`tensorrt-rtx==1.6.1.120`, latest `triton-windows==3.8.0.post28`, `onnx==1.22.0`, `onnxscript==0.7.1`, `polygraphy==0.53.4`) using `--no-deps` to preserve your ComfyUI PyTorch/CUDA environment.
+  - Automatically installs all dependencies defined in `requirements.txt` and ensures the validated TensorRT-RTX runtime stack (`tensorrt-rtx==1.6.1.120`, latest `triton-windows==3.8.0.post28`, `onnx==1.22.0`, `onnxscript==0.7.1`, `polygraphy==0.53.4`) using `--no-deps` to preserve your ComfyUI PyTorch/CUDA environment.
   - Automatically downloads missing engine artifacts (`ccsr_apply_f16io.rtxplan` and `ccsr_trt_aux.safetensors`) from Hugging Face into `nodes/CCSR/trt_engines/`.
   - Runs full readiness verification (`scripts/verify_install.py`) and records logs to `outputs/install.log`.
 

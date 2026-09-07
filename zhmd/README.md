@@ -75,7 +75,7 @@
    cd ComfyUI/custom_nodes
    git clone https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker.git
    ```
-2. 在您的 ComfyUI 环境中安装基础依赖项：
+2. 在您的 ComfyUI 环境中安装依赖项：
    ```bash
    pip install -r requirements.txt
    ```
@@ -88,7 +88,7 @@ CCSR 超分辨率放大采用 NVIDIA TensorRT-RTX 加速。您可以通过以下
 - **方法 1（一键批处理文件 — Windows 推荐）**：
   双击仓库根目录下的 **`Install TensorRT CCSR.bat`**。
   - 自动定位 ComfyUI 的内置 Python 环境（`python_embeded\python.exe`）。
-  - 使用 `--no-deps` 安全安装经过验证的 TensorRT 依赖栈（`tensorrt-rtx==1.6.1.120`、最新 `triton-windows==3.8.0.post28`、`onnx==1.22.0`、`onnxscript==0.7.1`、`polygraphy==0.53.4`），完全保护 ComfyUI 底层的 PyTorch/CUDA 环境。
+  - 自动安装 `requirements.txt` 中的全部依赖项，并使用 `--no-deps` 安全确保经过验证的 TensorRT 依赖栈（`tensorrt-rtx==1.6.1.120`、最新 `triton-windows==3.8.0.post28`、`onnx==1.22.0`、`onnxscript==0.7.1`、`polygraphy==0.53.4`），完全保护 ComfyUI 底层的 PyTorch/CUDA 环境。
   - 自动从 Hugging Face 下载缺失的引擎与辅助权重文件（`ccsr_apply_f16io.rtxplan` 和 `ccsr_trt_aux.safetensors`）至 `nodes/CCSR/trt_engines/`。
   - 自动运行就绪验证（`scripts/verify_install.py`）并将日志记录到 `outputs/install.log`。
 
