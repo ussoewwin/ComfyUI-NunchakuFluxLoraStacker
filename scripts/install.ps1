@@ -32,7 +32,6 @@ function Find-ComfyPython {
 
     # 1. ComfyUI python_embeded
     $comfyEmbeded = @(
-        'D:\USERFILES\ComfyUI\python_embeded\python.exe',
         'C:\ComfyUI\python_embeded\python.exe',
         (Join-Path $NodeRoot '..\..\..\python_embeded\python.exe'),
         (Join-Path $NodeRoot '..\..\python_embeded\python.exe')

@@ -63,7 +63,6 @@ skipped.
 
 The sibling repository
 `ComfyUI-HSWQ-Loader-and-Tools`
-(`D:\USERFILES\GitHub\ComfyUI-HSWQ-Loader-and-Tools`)
 had already solved both problems for its standalone ControlNet loader
 (`nodes/hswq_load_convrot_int8_controlnet.py`). Its technique:
 

@@ -1,6 +1,6 @@
 """
 ComfyUI-Manager install / update hook and automated TensorRT installer.
-Mirrors the SeedVR2 TensorRT installer pattern (D:\USERFILES\GitHub\ComfyUI-SeedVR2-VideoUpscaler-with-TensorRT-Decoder).
+Mirrors the SeedVR2 TensorRT installer pattern.
 
 Installs this pack's requirements.txt into the active ComfyUI Python
 environment, then ensures the TensorRT-RTX runtime stack and engine artifacts
