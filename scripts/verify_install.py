@@ -1,9 +1,14 @@
-"""Fast, non-rendering readiness check for ComfyUI CCSR TensorRT (ComfyUI-NunchakuFluxLoraStacker)."""
+"""Fast, non-rendering readiness check for ComfyUI CCSR TensorRT (ComfyUI-NunchakuFluxLoraStacker).
+
+Flags:
+  --allow-missing-engines  treat absent engine artifacts as a note, not a failure
+                           (used by install.ps1 when -SkipEngine is set).
+"""
 
 from __future__ import annotations
 
+import argparse
 import importlib
-import os
 import sys
 from pathlib import Path
 
@@ -21,7 +26,19 @@ SEARCH_DIRS = [
 ]
 
 
-def main() -> int:
+def parse_args(argv: list[str] | None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="ComfyUI CCSR TensorRT readiness check")
+    parser.add_argument(
+        "--allow-missing-engines",
+        action="store_true",
+        help="do not fail when engine artifacts are missing (they can be downloaded later via install.py)",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+
     print("=" * 80)
     print("ComfyUI CCSR TensorRT Readiness Check")
     print(f"Python: {sys.executable}")
@@ -30,7 +47,7 @@ def main() -> int:
     failures: list[str] = []
 
     # 1. Module imports
-    for module in ("torch", "triton", "tensorrt_rtx", "onnx", "polygraphy"):
+    for module in ("torch", "triton", "tensorrt_rtx", "onnx", "onnxscript", "polygraphy"):
         try:
             mod = importlib.import_module(module)
             ver = getattr(mod, "__version__", "available")
@@ -76,7 +93,10 @@ def main() -> int:
             print(f" - {name}")
         print("They can be downloaded automatically via install.py or from:")
         print("  https://huggingface.co/ussoewwin/CCSR-TensorRT-Engine")
-        failures.append(f"Missing required TRT files: {', '.join(missing_files)}")
+        if args.allow_missing_engines:
+            print("(--allow-missing-engines: missing engine files are not treated as a failure)")
+        else:
+            failures.append(f"Missing required TRT files: {', '.join(missing_files)}")
 
     if failures:
         print("\nInstallation is incomplete or needs attention:")

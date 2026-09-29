@@ -62,6 +62,8 @@ try {
         throw 'ComfyUI Python environment was not found. Please specify -PythonPath "path\to\python.exe".'
     }
     Write-Host "Target ComfyUI Python: $TargetPython" -ForegroundColor Cyan
+    if ($SkipEngine) { Write-Host 'Mode: engine download skipped (-SkipEngine)' -ForegroundColor Yellow }
+    if ($Repair) { Write-Host 'Mode: repair (force reinstall + deep engine verification)' -ForegroundColor Yellow }
 
     function Invoke-TargetPip([string[]]$Arguments) {
         & $TargetPython -m pip @Arguments
@@ -76,11 +78,16 @@ try {
     Write-Host $torchInfo -ForegroundColor Green
 
     Write-Step 'Running install.py (requirements & TensorRT runtime)'
-    & $TargetPython (Join-Path $NodeRoot 'install.py')
+    $installArgs = @()
+    if ($SkipEngine) { $installArgs += '--skip-engine' }
+    if ($Repair) { $installArgs += '--repair' }
+    & $TargetPython (Join-Path $NodeRoot 'install.py') @installArgs
     if ($LASTEXITCODE -ne 0) { throw 'install.py failed.' }
 
     Write-Step 'Final readiness check'
-    & $TargetPython (Join-Path $PSScriptRoot 'verify_install.py')
+    $verifyArgs = @()
+    if ($SkipEngine) { $verifyArgs += '--allow-missing-engines' }
+    & $TargetPython (Join-Path $PSScriptRoot 'verify_install.py') @verifyArgs
     if ($LASTEXITCODE -ne 0) { throw 'The final installation check failed.' }
     Set-Content -LiteralPath $Marker -Value (Get-Date -Format o) -Encoding ascii
 
