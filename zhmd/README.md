@@ -83,22 +83,28 @@ CCSR 超分辨率放大采用 NVIDIA TensorRT-RTX 加速。您可以通过以下
 
 - **方法 1（一键批处理文件 — Windows 推荐）**：
   双击仓库根目录下的 **`Install TensorRT CCSR.bat`**。
-  - 自动定位 ComfyUI 的内置 Python 环境（`python_embeded\python.exe`）。
-  - 自动安装 `requirements.txt` 中的全部依赖项，并使用 `--no-deps` 安全确保经过验证的 TensorRT 依赖栈（`tensorrt-rtx==1.6.1.120`、最新 `triton-windows==3.8.0.post28`、`onnx==1.22.0`、`onnxscript==0.7.1`、`polygraphy==0.53.4`），完全保护 ComfyUI 底层的 PyTorch/CUDA 环境。
-  - 自动从 Hugging Face 下载缺失的引擎与辅助权重文件（`ccsr_apply_f16io.rtxplan` 和 `ccsr_trt_aux.safetensors`）至 `nodes/CCSR/trt_engines/`。
-  - 自动运行就绪验证（`scripts/verify_install.py`）并将日志记录到 `outputs/install.log`。
+  - 自动定位 ComfyUI 的内置 Python 环境（`python_embeded\python.exe`）、已激活的 virtualenv 或 PATH 中的 Python（可用 `-PythonPath "path\to\python.exe"` 指定）。
+  - 安装前会先验证 PyTorch / CUDA 状态。
+  - 自动安装 `requirements.txt` 中的全部依赖项，并使用 `--no-deps` 安全确保经过验证的 TensorRT 依赖栈（`tensorrt-rtx==1.6.1.120`、`triton-windows==3.8.0.post28`、`onnx==1.22.0`、`onnxscript==0.7.1`、`polygraphy==0.53.4`），完全保护 ComfyUI 底层的 PyTorch/CUDA 环境。
+  - 自动从 Hugging Face 下载引擎与辅助权重文件（`ccsr_apply_f16io.rtxplan` 和 `ccsr_trt_aux.safetensors`，共约 2.5 GB）至 `nodes/CCSR/trt_engines/`，支持断点续传、重试与 SHA256 校验。
+  - 自动运行就绪验证（`scripts/verify_install.py`）并将日志记录到 `outputs/install.log`；成功时写入 `.ccsr-trt-installed` 标记。
+  - 可选开关：`-SkipEngine`（仅安装/修复运行时栈，跳过引擎下载）与 `-Repair`（强制重装运行时栈，并对引擎文件进行深度 SHA256 校验，不合格文件自动重新下载）。
 
 - **方法 2（ComfyUI-Manager）**：
   通过 ComfyUI-Manager 安装或更新本插件时，会自动调用 `install.py` 安装运行时栈并拉取预编译引擎文件。
 
 - **方法 3（手动命令行运行）**：
   ```bash
-  python install.py
+  python install.py                 # 完整安装：运行时栈 + 引擎文件 + 验证
+  python install.py --skip-engine   # 仅运行时栈（跳过引擎下载）
+  python install.py --repair        # 强制重装运行时栈 + 引擎文件深度校验（SHA256）
   ```
   随时验证安装状态：
   ```bash
   python scripts/verify_install.py
   ```
+
+> **注意**：CCSR TensorRT 节点需要 NVIDIA RTX GPU。引擎文件只需下载一次至 `nodes/CCSR/trt_engines/`，并按发布时的 SHA256 进行校验；重复运行会复用已验证的文件，中断的下载会自动续传。
 
 ## 使用方法
 
@@ -335,7 +341,7 @@ TensorRT 执行路径（纯引擎，无需完整检查点）。ControlNet+UNet �
 | `ccsr_apply_f16io.rtxplan` | `nodes/CCSR/trt_engines/` |
 | `ccsr_trt_aux.safetensors` | `nodes/CCSR/trt_engines/` |
 
-> 自动配置：运行 `install.py`（或双击 `Install TensorRT CCSR.bat`）会自动安装经过验证的 TensorRT-RTX 依赖栈（`tensorrt-rtx==1.6.1.120`、最新 `triton-windows==3.8.0.post28`、`onnx==1.22.0`、`onnxscript==0.7.1`、`polygraphy==0.53.4`）并自动下载缺失的引擎与辅助权重文件（`ccsr_apply_f16io.rtxplan`、`ccsr_trt_aux.safetensors`）。
+> 自动配置：运行 `install.py`（或双击 `Install TensorRT CCSR.bat`）会自动安装经过验证的 TensorRT-RTX 依赖栈（`tensorrt-rtx==1.6.1.120`、`triton-windows==3.8.0.post28`、`onnx==1.22.0`、`onnxscript==0.7.1`、`polygraphy==0.53.4`），并以断点续传 + SHA256 校验的方式自动下载缺失的引擎与辅助权重文件（`ccsr_apply_f16io.rtxplan`、`ccsr_trt_aux.safetensors`）。仅需运行时栈时可用 `--skip-engine`；`--repair` 可强制重装运行时栈并重新校验引擎文件；随时可用 `python scripts/verify_install.py` 检查就绪状态。
 
 `steps` 为有效扩散步数：保留了 t_max/t_min 区间设计，但加密了调度采样，使截断区间恰好包含 `steps` 个时间步。
 
