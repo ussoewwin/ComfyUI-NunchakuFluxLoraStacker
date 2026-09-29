@@ -27,33 +27,29 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
     
     <img src="png/SDNQ%20LoRA%20Stacker%20V2.png" width="400">
 
-5. **Model Patch Loader** (`ModelPatchLoaderCustom`) - Load model patches (ControlNet, feature projectors, etc.) with CPU offload support and ConvRot INT8 support
-    
-    <img src="png/Model%20Patch%20Loader.png" width="400">
-
-6. **Fast Groups Bypasser V2** (`FastGroupsBypasserV2`) - Group-based node control utility (ported from [rgthree-comfy](https://github.com/rgthree/rgthree-comfy))
+5. **Fast Groups Bypasser V2** (`FastGroupsBypasserV2`) - Group-based node control utility (ported from [rgthree-comfy](https://github.com/rgthree/rgthree-comfy))
     
     <img src="png/Fast%20Groups%20Bypasser%20V2.png" width="400">
 
-7. **Universal LoRA Analyzer** (`UniversalLoRAAnalyzer`) - Analyze LoRA files (model type, trigger words, base model, Civitai/HuggingFace URLs) without loading into the graph
+6. **Universal LoRA Analyzer** (`UniversalLoRAAnalyzer`) - Analyze LoRA files (model type, trigger words, base model, Civitai/HuggingFace URLs) without loading into the graph
     
     <img src="png/loraana.png" width="400">
 
-8. **Color Filter** (`ColorFilter`) - Strip monochrome / black-and-white wording (supporting both built-in patterns and custom user-defined exclude words) from caption text produced by vision-language tagging (e.g. Florence-2, WD14 Tagger) before feeding prompts to downstream nodes
+7. **Color Filter** (`ColorFilter`) - Strip monochrome / black-and-white wording (supporting both built-in patterns and custom user-defined exclude words) from caption text produced by vision-language tagging (e.g. Florence-2, WD14 Tagger) before feeding prompts to downstream nodes
     
     <img src="png/colorfilter.png" width="400">
 
-9. **Florence-2** (four nodes: `DownloadAndLoadFlorence2Model`, `DownloadAndLoadFlorence2Lora`, `Florence2ModelLoader`, `Florence2Run`) — Load Florence-2–family vision-language checkpoints (Hugging Face download or local `models/LLM`), optional PEFT LoRA, then run captioning, OCR, DocVQA, grounding, segmentation, and prompt-generation tasks; outputs include `FL2MODEL`, `PEFTLORA`, annotated images, masks, and strings.
+8. **Florence-2** (four nodes: `DownloadAndLoadFlorence2Model`, `DownloadAndLoadFlorence2Lora`, `Florence2ModelLoader`, `Florence2Run`) — Load Florence-2–family vision-language checkpoints (Hugging Face download or local `models/LLM`), optional PEFT LoRA, then run captioning, OCR, DocVQA, grounding, segmentation, and prompt-generation tasks; outputs include `FL2MODEL`, `PEFTLORA`, annotated images, masks, and strings.
 
     <img src="png/Florence2.png" width="400">
 
-10. **ControlAltAI** (11 nodes) — my Python 3.13 fork, now under `nodes/controlaltai/` (see **[ControlAltAI nodes](#controlaltai-nodes)** below).
+9. **ControlAltAI** (11 nodes) — my Python 3.13 fork, now under `nodes/controlaltai/` (see **[ControlAltAI nodes](#controlaltai-nodes)** below).
 
-11. **CCSR (TensorRT)** (two nodes: `LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`) - TRT-engine acceleration of the CCSR ControlNet+UNet (engine-only load, aux VAE/cond_encoder weights, ~1.4x vs fp16 PyTorch). Prebuilt engine + aux weights + ConvRot INT8 model: <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine> (see **[CCSR nodes](#ccsr-nodes)** below).
+10. **CCSR (TensorRT)** (two nodes: `LoadCCSRModelTensorRT`, `CCSR_Upscale_TRT`) - TRT-engine acceleration of the CCSR ControlNet+UNet (engine-only load, aux VAE/cond_encoder weights, ~1.4x vs fp16 PyTorch). Prebuilt engine + aux weights + ConvRot INT8 model: <https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine> (see **[CCSR nodes](#ccsr-nodes)** below).
 
     <img src="png/ccsrtensor.png" width="400">
 
-12. **Nunchaku Resolution Selector** (`NunchakuResolutionSelector`) — Pick width/height from Flux1-style aspect presets (or custom size), emit hires dimensions, an empty **16-channel** latent, and an info string (see **[Nunchaku Resolution Selector](#nunchaku-resolution-selector-nunchakuresolutionselector)** below).
+11. **Nunchaku Resolution Selector** (`NunchakuResolutionSelector`) — Pick width/height from Flux1-style aspect presets (or custom size), emit hires dimensions, an empty **16-channel** latent, and an info string (see **[Nunchaku Resolution Selector](#nunchaku-resolution-selector-nunchakuresolutionselector)** below).
 
     <img src="png/Resolution%20Selector.png" width="400">
 
@@ -214,34 +210,7 @@ Universal LoRA stacker for **standard ComfyUI `MODEL` + `CLIP` pipelines** (SDXL
 - `lora_name_X`: LoRA filename or `None` (optional)
 - `lora_strength_X`: Strength for slot X (optional, default 1.0)
 
-### 3. Model Patch Loader (`ModelPatchLoaderCustom`)
-
-#### Features
-- **CPU Offload Support**: Optionally load model patches to CPU memory to save VRAM
-- **Multiple Model Types**: Supports QwenImage ControlNet, SigLIP feature projectors, and ZImage ControlNet
-- **Automatic Detection**: Automatically detects and loads the correct model type based on state dict keys
-- **Flexible Deployment**: Choose between CPU (memory) or GPU (VRAM) loading
-- **ConvRot INT8 Support**: ZImage ControlNet checkpoints quantized with comfy-native `int8_tensorwise` (ConvRot) are detected automatically via their `comfy_quant` metadata and loaded with `mixed_precision_ops`, keeping weights INT8 in memory while running through the comfy-kitchen `int8_linear` kernel (with online ConvRot activation rotation). Works with both GPU loading and CPU offload
-
-- **How to quantize (Text Encoder / ControlNet)**: [Hybrid-Sensitivity-Weighted-Quantization — How to quantize Text Encoder and ControlNet](https://github.com/ussoewwin/Hybrid-Sensitivity-Weighted-Quantization/blob/main/md/How%20to%20quantize%20Text%20Encoder%20and%20ControlNet.md)
-
-#### Usage
-1. Place model patch files (`.safetensors` or `.ckpt`) in the `model_patches` folder
-2. Add **Model Patch Loader** node to your workflow
-3. Select the model patch file from the dropdown
-4. Enable `cpu_offload` to load to CPU memory (saves VRAM), or disable for GPU loading
-5. Connect the `MODEL_PATCH` output to compatible nodes
-
-#### Supported Model Types
-- **QwenImageBlockWiseControlNet**: ControlNet for Qwen image generation models
-- **SigLIPMultiFeatProjModel**: Multi-feature projection model for style features
-- **ZImage_Control**: Z-Image format ControlNet (BF16 and ConvRot INT8 variants)
-
-#### Parameters
-- `name`: Model patch filename (required)
-- `cpu_offload`: Load model to CPU memory instead of GPU (default: True)
-
-### 4. Fast Groups Bypasser V2 (`FastGroupsBypasserV2`)
+### 3. Fast Groups Bypasser V2 (`FastGroupsBypasserV2`)
 
 **Note:** This node is a port from the original [rgthree-comfy](https://github.com/rgthree/rgthree-comfy) implementation and is unrelated to LoRA loading functionality. It is included here as a utility feature for workflow management.
 

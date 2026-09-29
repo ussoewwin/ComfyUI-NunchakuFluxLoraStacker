@@ -27,33 +27,29 @@
     
     <img src="../png/SDNQ%20LoRA%20Stacker%20V2.png" width="400">
 
-5. **Model Patch Loader** (`ModelPatchLoaderCustom`) - 加载模型补丁（ControlNet、特征投影器等），支持 CPU 卸载，并支持 ConvRot INT8
-    
-    <img src="../png/Model%20Patch%20Loader.png" width="400">
-
-6. **Fast Groups Bypasser V2** (`FastGroupsBypasserV2`) - 基于组的节点控制工具（从 [rgthree-comfy](https://github.com/rgthree/rgthree-comfy) 移植）
+5. **Fast Groups Bypasser V2** (`FastGroupsBypasserV2`) - 基于组的节点控制工具（从 [rgthree-comfy](https://github.com/rgthree/rgthree-comfy) 移植）
     
     <img src="../png/Fast%20Groups%20Bypasser%20V2.png" width="400">
 
-7. **Universal LoRA Analyzer** (`UniversalLoRAAnalyzer`) - 分析 LoRA 文件（模型类型、触发词、基础模型、Civitai/HuggingFace URL）而无需将其加载到图中
+6. **Universal LoRA Analyzer** (`UniversalLoRAAnalyzer`) - 分析 LoRA 文件（模型类型、触发词、基础模型、Civitai/HuggingFace URL）而无需将其加载到图中
     
     <img src="../png/loraana.png" width="400">
 
-8. **Color Filter** (`ColorFilter`) - 从视觉语言标记（如 Florence-2、WD14 Tagger）生成的描述文本中移除单色/黑白相关词语（支持内置模式和用户自定义排除词），然后再输入下游节点
+7. **Color Filter** (`ColorFilter`) - 从视觉语言标记（如 Florence-2、WD14 Tagger）生成的描述文本中移除单色/黑白相关词语（支持内置模式和用户自定义排除词），然后再输入下游节点
     
     <img src="../png/colorfilter.png" width="400">
 
-9. **Florence-2**（四个节点：`DownloadAndLoadFlorence2Model`、`DownloadAndLoadFlorence2Lora`、`Florence2ModelLoader`、`Florence2Run`）— 加载 Florence-2 系列视觉语言检查点（Hugging Face 下载或本地 `models/LLM`），可选 PEFT LoRA，然后运行描述、OCR、DocVQA、定位、分割和提示生成任务；输出包括 `FL2MODEL`、`PEFTLORA`、标注图像、蒙版和字符串。
+8. **Florence-2**（四个节点：`DownloadAndLoadFlorence2Model`、`DownloadAndLoadFlorence2Lora`、`Florence2ModelLoader`、`Florence2Run`）— 加载 Florence-2 系列视觉语言检查点（Hugging Face 下载或本地 `models/LLM`），可选 PEFT LoRA，然后运行描述、OCR、DocVQA、定位、分割和提示生成任务；输出包括 `FL2MODEL`、`PEFTLORA`、标注图像、蒙版和字符串。
 
     <img src="../png/Florence2.png" width="400">
 
-10. **ControlAltAI**（11 个节点）— 我的 Python 3.13 分支，现位于 `nodes/controlaltai/`（参见下方 **[ControlAltAI 节点](#controlaltai-节点)**）。
+9. **ControlAltAI**（11 个节点）— 我的 Python 3.13 分支，现位于 `nodes/controlaltai/`（参见下方 **[ControlAltAI 节点](#controlaltai-节点)**）。
 
-11. **CCSR (TensorRT)**（两个节点：`LoadCCSRModelTensorRT`、`CCSR_Upscale_TRT`）— CCSR ControlNet+UNet 的 TRT 引擎加速（纯引擎加载，VAE/cond_encoder 辅助权重，相比 fp16 PyTorch 约 1.4 倍速）。预编译引擎与辅助权重：<https://huggingface.co/ussoewwin/CCSR-TensorRT-Engine>（参见下方 **[CCSR 节点](#ccsr-节点)**）。
+10. **CCSR (TensorRT)**（两个节点：`LoadCCSRModelTensorRT`、`CCSR_Upscale_TRT`）— CCSR ControlNet+UNet 的 TRT 引擎加速（纯引擎加载，VAE/cond_encoder 辅助权重，相比 fp16 PyTorch 约 1.4 倍速）。预编译引擎与辅助权重：<https://huggingface.co/ussoewwin/CCSR-TensorRT-Engine>（参见下方 **[CCSR 节点](#ccsr-节点)**）。
     
     <img src="../png/ccsr.png" width="400">
 
-12. **Nunchaku Resolution Selector**（`NunchakuResolutionSelector`）— 从 Flux1 风格的宽高比预设（或自定义尺寸）选择宽高，输出 hires 尺寸、空 **16 通道** latent，以及 info 字符串（参见下方 **[Nunchaku Resolution Selector](#nunchaku-resolution-selector-nunchakuresolutionselector)**）。
+11. **Nunchaku Resolution Selector**（`NunchakuResolutionSelector`）— 从 Flux1 风格的宽高比预设（或自定义尺寸）选择宽高，输出 hires 尺寸、空 **16 通道** latent，以及 info 字符串（参见下方 **[Nunchaku Resolution Selector](#nunchaku-resolution-selector-nunchakuresolutionselector)**）。
 
     <img src="../png/Resolution%20Selector.png" width="400">
 
@@ -214,34 +210,7 @@ V1 节点 (`NunchakuFluxLoraStack`) 仍然可用，原因如下：
 - `lora_name_X`：LoRA 文件名或 `None`（可选）
 - `lora_strength_X`：槽位 X 的强度（可选，默认 1.0）
 
-### 3. Model Patch Loader (`ModelPatchLoaderCustom`)
-
-#### 功能
-- **CPU 卸载支持**: 可选择将模型补丁加载到 CPU 内存以节省 VRAM
-- **多种模型类型**: 支持 QwenImage ControlNet、SigLIP 特征投影器和 ZImage ControlNet
-- **自动检测**: 根据 state dict 键自动检测并加载正确的模型类型
-- **灵活部署**: 在 CPU (内存) 或 GPU (VRAM) 加载之间选择
-- **ConvRot INT8 支持**: 自动检测带有 comfy 原生 `int8_tensorwise`（ConvRot）量化的 ZImage ControlNet 检查点（基于 `comfy_quant` 元数据），并使用 `mixed_precision_ops` 加载；权重始终以 INT8 形式保存在内存中，运算通过 comfy-kitchen 的 `int8_linear` 内核（含在线 ConvRot 激活旋转）执行。GPU 加载与 CPU 卸载均支持
-
-- **量化方法（Text Encoder / ControlNet）**: [Hybrid-Sensitivity-Weighted-Quantization — How to quantize Text Encoder and ControlNet](https://github.com/ussoewwin/Hybrid-Sensitivity-Weighted-Quantization/blob/main/md/How%20to%20quantize%20Text%20Encoder%20and%20ControlNet.md)
-
-#### 使用方法
-1. 将模型补丁文件 (`.safetensors` 或 `.ckpt`) 放入 `model_patches` 文件夹
-2. 将 **Model Patch Loader** 节点添加到您的工作流
-3. 从下拉菜单中选择模型补丁文件
-4. 启用 `cpu_offload` 以加载到 CPU 内存（节省 VRAM），或禁用以进行 GPU 加载
-5. 将 `MODEL_PATCH` 输出连接到兼容的节点
-
-#### 支持的模型类型
-- **QwenImageBlockWiseControlNet**: 用于 Qwen 图像生成模型的 ControlNet
-- **SigLIPMultiFeatProjModel**: 用于风格特征的多特征投影模型
-- **ZImage_Control**: Z-Image 格式 ControlNet（BF16 与 ConvRot INT8 版本）
-
-#### 参数
-- `name`: 模型补丁文件名 (必需)
-- `cpu_offload`: 将模型加载到 CPU 内存而非 GPU (默认: True)
-
-### 4. Fast Groups Bypasser V2 (`FastGroupsBypasserV2`)
+### 3. Fast Groups Bypasser V2 (`FastGroupsBypasserV2`)
 
 **注意:** 此节点是从原始 [rgthree-comfy](https://github.com/rgthree/rgthree-comfy) 实现移植的，与 LoRA 加载功能无关。它作为工作流管理的实用工具包含在此处。
 
