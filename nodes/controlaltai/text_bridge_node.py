@@ -33,6 +33,6 @@ class TextBridge:
         return (output_text,)
 
 NODE_CLASS_MAPPINGS = {
-    "CAI_TextBridge": TextBridge,
+    "hswq_TextBridge": TextBridge,
 }
 

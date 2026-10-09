@@ -91,7 +91,7 @@ class FluxUnionControlNetApply:
         return (c, vae)
 
 NODE_CLASS_MAPPINGS = {
-    "CAI_FluxUnionControlNetApply": FluxUnionControlNetApply,
+    "hswq_FluxUnionControlNetApply": FluxUnionControlNetApply,
 }
 
 

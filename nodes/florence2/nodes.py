@@ -782,14 +782,14 @@ class Florence2Run:
         return (out_tensor, out_mask_tensor, out_results, out_data)
      
 NODE_CLASS_MAPPINGS = {
-    "NFL2_DownloadAndLoadFlorence2Model": DownloadAndLoadFlorence2Model,
-    "NFL2_DownloadAndLoadFlorence2Lora": DownloadAndLoadFlorence2Lora,
-    "NFL2_Florence2ModelLoader": Florence2ModelLoader,
-    "NFL2_Florence2Run": Florence2Run,
+    "hswq_DownloadAndLoadFlorence2Model": DownloadAndLoadFlorence2Model,
+    "hswq_DownloadAndLoadFlorence2Lora": DownloadAndLoadFlorence2Lora,
+    "hswq_Florence2ModelLoader": Florence2ModelLoader,
+    "hswq_Florence2Run": Florence2Run,
 }
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "NFL2_DownloadAndLoadFlorence2Model": "NFL2_DownloadAndLoadFlorence2Model",
-    "NFL2_DownloadAndLoadFlorence2Lora": "NFL2_DownloadAndLoadFlorence2Lora",
-    "NFL2_Florence2ModelLoader": "NFL2_Florence2ModelLoader",
-    "NFL2_Florence2Run": "NFL2_Florence2Run",
+    "hswq_DownloadAndLoadFlorence2Model": "hswq_DownloadAndLoadFlorence2Model",
+    "hswq_DownloadAndLoadFlorence2Lora": "hswq_DownloadAndLoadFlorence2Lora",
+    "hswq_Florence2ModelLoader": "hswq_Florence2ModelLoader",
+    "hswq_Florence2Run": "hswq_Florence2Run",
 }

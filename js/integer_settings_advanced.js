@@ -5,7 +5,7 @@ app.registerExtension({
     name: "ControlAltAI.IntegerSettingsAdvanced",
     
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
-        if (nodeData.name === "CAI_IntegerSettingsAdvanced") {
+        if (nodeData.name === "hswq_IntegerSettingsAdvanced") {
             console.log("Registering IntegerSettingsAdvanced mutual exclusion behavior");
             
             const onNodeCreated = nodeType.prototype.onNodeCreated;

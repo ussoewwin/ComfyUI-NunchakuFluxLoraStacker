@@ -31,24 +31,24 @@ To guarantee that every node survives Python 3.13’s stricter semantics, this f
 
 All node class names and display names have been changed from the original repository. Here is the complete list of changes:
 
-> Note (2026-10-09): the 11 class types above that collide with `gseth/ControlAltAI-Nodes` were further namespaced with a `CAI_` prefix (e.g. `CAI_FluxSampler`) to eliminate same-name registrations. `MegapixelCalculatorNode` keeps its name.
+> Note (2026-10-09): the 11 class types above that collide with `gseth/ControlAltAI-Nodes` were further namespaced with a `hswq_` prefix (e.g. `hswq_FluxSampler`) to eliminate same-name registrations. `MegapixelCalculatorNode` keeps its name.
 
 ## Node Class Name and Display Name Changes
 
 | Original Node Class Name | Changed Node Class Name | Original Display Name | Changed Display Name |
 |-------------------------|------------------------|----------------------|---------------------|
 | FluxResolutionNode | MegapixelCalculatorNode | Flux Resolution Calc | ControlAltAI: Megapixel Calculator |
-| FluxSampler | CAI_FluxSampler | Flux Sampler | ControlAltAI: Advanced Sampler |
-| FluxUnionControlNetApply | CAI_FluxUnionControlNetApply | Flux Union ControlNet Apply | ControlAltAI: Union ControlNet Apply |
-| BooleanBasic | CAI_BooleanBasic | Boolean Basic | ControlAltAI: Boolean Basic |
-| BooleanReverse | CAI_BooleanReverse | Boolean Reverse | ControlAltAI: Boolean Reverse |
-| GetImageSizeRatio | CAI_GetImageSizeRatio | Get Image Size Ratio | ControlAltAI: Get Image Size Ratio |
-| IntegerSettings | CAI_IntegerSettings | Integer Settings | ControlAltAI: Integer Settings |
-| IntegerSettingsAdvanced | CAI_IntegerSettingsAdvanced | Integer Settings Advanced | ControlAltAI: Integer Settings Advanced |
-| PerturbationTexture | CAI_PerturbationTexture | Perturbation Texture | ControlAltAI: Perturbation Texture |
-| TextBridge | CAI_TextBridge | Text Bridge | ControlAltAI: Text Bridge |
-| TwoWaySwitch | CAI_TwoWaySwitch | Switch (Two Way) | ControlAltAI: Switch (Two Way) |
-| ThreeWaySwitch | CAI_ThreeWaySwitch | Switch (Three Way) | ControlAltAI: Switch (Three Way) |
+| FluxSampler | hswq_FluxSampler | Flux Sampler | ControlAltAI: Advanced Sampler |
+| FluxUnionControlNetApply | hswq_FluxUnionControlNetApply | Flux Union ControlNet Apply | ControlAltAI: Union ControlNet Apply |
+| BooleanBasic | hswq_BooleanBasic | Boolean Basic | ControlAltAI: Boolean Basic |
+| BooleanReverse | hswq_BooleanReverse | Boolean Reverse | ControlAltAI: Boolean Reverse |
+| GetImageSizeRatio | hswq_GetImageSizeRatio | Get Image Size Ratio | ControlAltAI: Get Image Size Ratio |
+| IntegerSettings | hswq_IntegerSettings | Integer Settings | ControlAltAI: Integer Settings |
+| IntegerSettingsAdvanced | hswq_IntegerSettingsAdvanced | Integer Settings Advanced | ControlAltAI: Integer Settings Advanced |
+| PerturbationTexture | hswq_PerturbationTexture | Perturbation Texture | ControlAltAI: Perturbation Texture |
+| TextBridge | hswq_TextBridge | Text Bridge | ControlAltAI: Text Bridge |
+| TwoWaySwitch | hswq_TwoWaySwitch | Switch (Two Way) | ControlAltAI: Switch (Two Way) |
+| ThreeWaySwitch | hswq_ThreeWaySwitch | Switch (Three Way) | ControlAltAI: Switch (Three Way) |
 
 ### Key Changes Summary
 

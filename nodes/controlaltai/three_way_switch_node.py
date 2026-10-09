@@ -55,6 +55,6 @@ class ThreeWaySwitch:
         return (selected_output,)
 
 NODE_CLASS_MAPPINGS = {
-    "CAI_ThreeWaySwitch": ThreeWaySwitch,
+    "hswq_ThreeWaySwitch": ThreeWaySwitch,
 }
 

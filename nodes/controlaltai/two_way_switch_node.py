@@ -50,6 +50,6 @@ class TwoWaySwitch:
         return (selected_output,)
 
 NODE_CLASS_MAPPINGS = {
-    "CAI_TwoWaySwitch": TwoWaySwitch,
+    "hswq_TwoWaySwitch": TwoWaySwitch,
 }
 

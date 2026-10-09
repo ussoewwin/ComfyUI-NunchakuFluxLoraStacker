@@ -222,6 +222,6 @@ class PerturbationTexture:
         return textured_tensor, texture_tensor
 
 NODE_CLASS_MAPPINGS = {
-    "CAI_PerturbationTexture": PerturbationTexture,
+    "hswq_PerturbationTexture": PerturbationTexture,
 }
 
