@@ -343,7 +343,7 @@ TensorRT execution path (engine-only, no full checkpoint required). The ControlN
 | `ccsr_apply_f16io.rtxplan` | `nodes/CCSR/trt_engines/` |
 | `ccsr_trt_aux.safetensors` | `nodes/CCSR/trt_engines/` |
 
-> Automated setup: Running `install.py` (or double-clicking `Install TensorRT CCSR.bat`) automatically installs the validated TensorRT-RTX stack (`tensorrt-rtx==1.6.1.120`, `triton-windows` (latest), `onnx==1.22.0`, `onnxscript==0.7.1`, `polygraphy==0.53.4`) and downloads missing engine files (`ccsr_apply_f16io.rtxplan`, `ccsr_trt_aux.safetensors`) with resume support and SHA256 verification. Use `--skip-engine` for the runtime stack only, `--repair` to force-reinstall the stack and re-verify the engine files, and `python scripts/verify_install.py` to check readiness at any time.
+> Automatic on-demand setup: The required TensorRT-RTX stack (`tensorrt-rtx==1.6.1.120`, `triton-windows`, `onnx==1.22.0`, `onnxscript==0.7.1`, `polygraphy==0.53.4`) is unified into `requirements.txt`. Missing engine files (`ccsr_apply_f16io.rtxplan`, `ccsr_trt_aux.safetensors`) are automatically downloaded from Hugging Face on demand with SHA256 verification when running the `LoadCCSRModelTensorRT` node, or can be installed via `Install TensorRT CCSR.bat`.
 
 `steps` is the effective diffusion step count: the t_max/t_min band design is preserved while the schedule is densified so the truncated range contains exactly `steps` timesteps.
 

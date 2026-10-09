@@ -227,13 +227,126 @@ class XFormersKernelOnce:
 
 _TRT_ENGINE_DIR = os.path.join(script_directory, "trt_engines")
 
+ENGINE_SPECS = {
+    "ccsr_apply_f16io.rtxplan": {
+        "size": 2_485_444_548,
+        "sha256": "c8bbe29106e42676e03648bddb9af0fb3e096e88106617ce0936737ac86fca43",
+    },
+    "ccsr_trt_aux.safetensors": {
+        "size": 235_677_486,
+        "sha256": "29bc16c259750ffa39c8a51b83a853048386382238a2ea9f142a67e084ac65ba",
+    },
+}
+
+HF_REPOS = [
+    "https://huggingface.co/ussoewwin/CCSR-TensorRT-Engine/resolve/main",
+    "https://huggingface.co/ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine/resolve/main",
+]
+
+
+def ensure_engine_artifact(filename: str) -> str:
+    """Ensure artifact exists in trt_engines; download from Hugging Face if missing."""
+    target_path = os.path.join(_TRT_ENGINE_DIR, filename)
+    os.makedirs(_TRT_ENGINE_DIR, exist_ok=True)
+    spec = ENGINE_SPECS.get(filename)
+
+    if os.path.exists(target_path):
+        if spec and os.path.getsize(target_path) == spec["size"]:
+            return target_path
+        if not spec and os.path.getsize(target_path) > 0:
+            return target_path
+        print(f"[CCSR-TRT] File {filename} appears incomplete or corrupted. Re-downloading...", flush=True)
+
+    print(f"\n[CCSR-TRT] == Downloading {filename} from Hugging Face ==", flush=True)
+
+    # 1. Try huggingface_hub if available
+    try:
+        from huggingface_hub import hf_hub_download
+        for repo_id in ["ussoewwin/CCSR-TensorRT-Engine", "ussoewwin/CCSR-ConvRot-INT8-and-TensorRT-Engine"]:
+            try:
+                cached = hf_hub_download(repo_id=repo_id, filename=filename, local_dir=_TRT_ENGINE_DIR)
+                if os.path.exists(cached) and (not spec or os.path.getsize(cached) == spec["size"]):
+                    print(f"[CCSR-TRT] Successfully downloaded {filename} via huggingface_hub", flush=True)
+                    return cached
+            except Exception:
+                continue
+    except ImportError:
+        pass
+
+    # 2. Fallback: streaming download via urllib
+    import urllib.request
+    import time
+
+    part_path = target_path + ".part"
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) ComfyUI-CCSR"}
+
+    for base_url in HF_REPOS:
+        url = f"{base_url}/{filename}?download=true"
+        try:
+            print(f"[CCSR-TRT] Fetching {url} ...", flush=True)
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                total = int(resp.headers.get("Content-Length", 0))
+                downloaded = 0
+                last_print = 0.0
+                with open(part_path, "wb") as f:
+                    while True:
+                        chunk = resp.read(1024 * 1024)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        now = time.time()
+                        if now - last_print > 0.5:
+                            last_print = now
+                            if total > 0:
+                                pct = downloaded / total * 100.0
+                                print(f"\r  -> {downloaded / (1024*1024):.1f} MB / {total / (1024*1024):.1f} MB ({pct:.1f}%)", end="", flush=True)
+                            else:
+                                print(f"\r  -> {downloaded / (1024*1024):.1f} MB", end="", flush=True)
+                print("", flush=True)
+
+            if spec and os.path.getsize(part_path) != spec["size"]:
+                print(f"[CCSR-TRT] Size mismatch for {filename}, trying next mirror...", flush=True)
+                if os.path.exists(part_path):
+                    try:
+                        os.remove(part_path)
+                    except OSError:
+                        pass
+                continue
+
+            if os.path.exists(target_path):
+                try:
+                    os.remove(target_path)
+                except OSError:
+                    pass
+            os.rename(part_path, target_path)
+            print(f"[CCSR-TRT] {filename} ready and verified.", flush=True)
+            return target_path
+        except Exception as exc:
+            print(f"[CCSR-TRT] Download attempt failed: {exc}", flush=True)
+            if os.path.exists(part_path):
+                try:
+                    os.remove(part_path)
+                except OSError:
+                    pass
+
+    if not os.path.exists(target_path):
+        raise FileNotFoundError(
+            f"Failed to automatically download {filename}. Please manually place it under {_TRT_ENGINE_DIR} from {HF_REPOS[0]}"
+        )
+    return target_path
+
 
 def _list_engines():
     """Return engine filenames present under nodes/CCSR/trt_engines."""
     d = _TRT_ENGINE_DIR
-    if not os.path.isdir(d):
-        return []
-    return sorted(fn for fn in os.listdir(d) if fn.endswith(".rtxplan"))
+    found = []
+    if os.path.isdir(d):
+        found = sorted(fn for fn in os.listdir(d) if fn.endswith(".rtxplan"))
+    if "ccsr_apply_f16io.rtxplan" not in found:
+        found.insert(0, "ccsr_apply_f16io.rtxplan")
+    return found
 
 
 def _find_engine():
@@ -298,8 +411,6 @@ class LoadCCSRModelTensorRT:
     @classmethod
     def INPUT_TYPES(s):
         engines = _list_engines()
-        if not engines:
-            engines = ["(no engine in trt_engines)"]
         return {"required": {
             "engine": (engines,),
         }}
@@ -313,25 +424,30 @@ class LoadCCSRModelTensorRT:
         if not _TRT_AVAILABLE:
             raise RuntimeError(
                 f"TensorRT-RTX runtime is not available: {_TRT_IMPORT_ERROR}\n"
-                "Please run install.py or 'Install TensorRT CCSR.bat' to install the TensorRT-RTX stack."
+                "Please ensure the TensorRT-RTX stack from requirements.txt is installed."
             )
         device = mm.get_torch_device()
         offload_device = mm.unet_offload_device()
         dtype = torch.float16
 
         engine_dir = _TRT_ENGINE_DIR
+        if not engine or engine == "(no engine in trt_engines)":
+            engine = "ccsr_apply_f16io.rtxplan"
+
         engine_path = os.path.join(engine_dir, engine)
         if not os.path.exists(engine_path):
-            raise FileNotFoundError(f"engine not found: {engine_path}")
+            if engine in ENGINE_SPECS:
+                engine_path = ensure_engine_artifact(engine)
+            else:
+                raise FileNotFoundError(f"engine not found: {engine_path}")
+
         eng = get_engine(engine_path, device)
         print(f"[CCSR-TRT] engine loaded: {engine}", flush=True)
 
         # aux weights (VAE + cond_encoder) auto-loaded next to the engine
         aux_path = os.path.join(engine_dir, "ccsr_trt_aux.safetensors")
         if not os.path.exists(aux_path):
-            raise FileNotFoundError(
-                f"aux weights not found: {aux_path} (need ccsr_trt_aux.safetensors in trt_engines)"
-            )
+            aux_path = ensure_engine_artifact("ccsr_trt_aux.safetensors")
 
         config_path = os.path.join(script_directory, "configs/model/ccsr_stage2.yaml")
         config = OmegaConf.load(config_path)

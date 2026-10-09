@@ -341,7 +341,7 @@ TensorRT 执行路径（纯引擎，无需完整检查点）。ControlNet+UNet �
 | `ccsr_apply_f16io.rtxplan` | `nodes/CCSR/trt_engines/` |
 | `ccsr_trt_aux.safetensors` | `nodes/CCSR/trt_engines/` |
 
-> 自动配置：运行 `install.py`（或双击 `Install TensorRT CCSR.bat`）会自动安装经过验证的 TensorRT-RTX 依赖栈（`tensorrt-rtx==1.6.1.120`、`triton-windows`（最新版）、`onnx==1.22.0`、`onnxscript==0.7.1`、`polygraphy==0.53.4`），并以断点续传 + SHA256 校验的方式自动下载缺失的引擎与辅助权重文件（`ccsr_apply_f16io.rtxplan`、`ccsr_trt_aux.safetensors`）。仅需运行时栈时可用 `--skip-engine`；`--repair` 可强制重装运行时栈并重新校验引擎文件；随时可用 `python scripts/verify_install.py` 检查就绪状态。
+> 自动按需配置：所需的 TensorRT-RTX 依赖栈（`tensorrt-rtx==1.6.1.120`、`triton-windows`、`onnx==1.22.0`、`onnxscript==0.7.1`、`polygraphy==0.53.4`）已统一集成至 `requirements.txt`。运行 `LoadCCSRModelTensorRT` 节点时，缺失的引擎与辅助权重文件（`ccsr_apply_f16io.rtxplan`、`ccsr_trt_aux.safetensors`）会自动从 Hugging Face 按需下载并校验 SHA256，亦可通过 `Install TensorRT CCSR.bat` 预先配置。
 
 `steps` 为有效扩散步数：保留了 t_max/t_min 区间设计，但加密了调度采样，使截断区间恰好包含 `steps` 个时间步。
 

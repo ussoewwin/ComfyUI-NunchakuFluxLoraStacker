@@ -27,12 +27,11 @@ The engine dropdown in **Load CCSR Model (TensorRT)** auto-lists every
 automatically from the same folder.
 
 > Requires an RTX GPU and the TensorRT-RTX runtime (`tensorrt-rtx`).
-> `install.py` (or running `Install TensorRT CCSR.bat`) automatically installs
-> the TensorRT-RTX runtime stack and downloads any missing engine artifacts
-> (resumable downloads, verified against their published SHA256; a
-> `.ccsr-trt-installed` marker is written on success). Switches: `-SkipEngine`
-> (runtime stack only) and `-Repair` (force-reinstall + deep engine
-> verification). Run `python scripts/verify_install.py` to check readiness.
+> The TensorRT-RTX runtime stack is unified into `requirements.txt`.
+> Engine artifacts (`ccsr_apply_f16io.rtxplan`, `ccsr_trt_aux.safetensors`)
+> are automatically downloaded on demand from Hugging Face when running
+> the **Load CCSR Model (TensorRT)** node (or can be preinstalled using
+> `Install TensorRT CCSR.bat`).
 
 ## Nodes
 
@@ -56,12 +55,7 @@ exactly `steps` timesteps.
 
 ## Usage
 
-1. Install the pack (ComfyUI-Manager runs `install.py`, which ensures the
-   TensorRT-RTX runtime stack).
-2. Engine files: `install.py` downloads `ccsr_apply_f16io.rtxplan` +
-   `ccsr_trt_aux.safetensors` automatically into `nodes/CCSR/trt_engines/`
-   (resumable, SHA256-verified; or place them there manually from Hugging Face).
-3. Restart ComfyUI.
-4. Build the workflow: **Load CCSR Model (TensorRT)** → **CCSR Upscale (TRT)**,
-   feed the image in, run.
-5. The log confirms the TRT path (`[CCSR-TRT] ...` lines).
+1. Install requirements (`python -m pip install -r requirements.txt`).
+2. Build or load your workflow: **Load CCSR Model (TensorRT)** → **CCSR Upscale (TRT)**.
+3. On first run, missing engine files are automatically downloaded and verified from Hugging Face.
+4. Run the workflow — the console confirms the TRT path (`[CCSR-TRT] ...` lines).

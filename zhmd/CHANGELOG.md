@@ -9,6 +9,8 @@
 
 ## 发布历史
 
+- v2.1.4 - 废弃 `install.py`、统一 TensorRT 依赖至 `requirements.txt`、按需自动下载 CCSR 引擎：彻底废弃并移除 `install.py`，消除因自动下载大体积二进制文件与子进程 pip 执行导致的 Comfy Registry (CNR) 安全标记（Security Flagged）。所有 TensorRT 运行时依赖（`triton-windows` / `triton`、`tensorrt-rtx`、`onnx`、`onnxscript`、`polygraphy`）现已严格统一整合至根目录 `requirements.txt`。重构了 `LoadCCSRModelTensorRT` 节点，当在 ComfyUI 中运行该节点且本地缺失引擎文件时，会自动通过流式传输并校验 SHA256 从 Hugging Face 按需自动下载所需引擎文件（`ccsr_apply_f16io.rtxplan` 与 `ccsr_trt_aux.safetensors`）。（[发布说明](v2.1.4.md)）
+
 - v2.1.3 - `triton-windows` 动态解析与解除版本固定：移除了 `requirements.txt`、`install.py` 及相关文档中对 `triton-windows==3.8.0.post28` 的硬编码版本绑定。安装流水线与环境配置现在会自动从 PyPI 解析并安装最新的 `triton-windows` 版本，自适应更新的 PyTorch 运行时与环境更新，无需手动维护版本。（[发布说明](v2.1.3.md)）
 
 - v2.1.2 - 节点类命名空间化（`hswq_` 前缀）：与其他包同名的 16 个节点类类型全部改用 **`hswq_`** 前缀。Florence-2（4 个）：`hswq_DownloadAndLoadFlorence2Model`、`hswq_DownloadAndLoadFlorence2Lora`、`hswq_Florence2ModelLoader`、`hswq_Florence2Run`，消除与 `kijai/ComfyUI-Florence2`、`comfyui-tensorops`、`TBG-ETUR` 的同名 `class_type` 注册；ControlAltAI 工具（11 个注册节点＋模块映射内的 `FluxControlNetApply`）：`hswq_FluxSampler`、`hswq_FluxUnionControlNetApply`、`hswq_BooleanBasic`、`hswq_BooleanReverse`、`hswq_GetImageSizeRatio`、`hswq_IntegerSettings`、`hswq_IntegerSettingsAdvanced`、`hswq_PerturbationTexture`、`hswq_TextBridge`、`hswq_TwoWaySwitch`、`hswq_ThreeWaySwitch`，清除与 `gseth/ControlAltAI-Nodes` 的冲突条目。`MegapixelCalculatorNode` 保持原名（无冲突）。节点行为、控件、输入输出类型均不变；引用旧类类型的工作流需改用新的 `hswq_` 名称。 ([Release Notes](https://github.com/ussoewwin/ComfyUI-NunchakuFluxLoraStacker/releases/tag/v2.1.2))
