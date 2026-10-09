@@ -16,6 +16,6 @@ class BooleanReverse:
         return (not boolean,)
 
 NODE_CLASS_MAPPINGS = {
-    "BooleanReverse": BooleanReverse,
+    "CAI_BooleanReverse": BooleanReverse,
 }
 

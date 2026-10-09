@@ -33,6 +33,6 @@ class FluxControlNetApply:
         return (c,)
 
 NODE_CLASS_MAPPINGS = {
-    "FluxControlNetApply": FluxControlNetApply,
+    "CAI_FluxControlNetApply": FluxControlNetApply,
 }
 

@@ -31,6 +31,6 @@ class IntegerSettingsAdvanced:
             return (1,)
 
 NODE_CLASS_MAPPINGS = {
-    "IntegerSettingsAdvanced": IntegerSettingsAdvanced,
+    "CAI_IntegerSettingsAdvanced": IntegerSettingsAdvanced,
 }
 

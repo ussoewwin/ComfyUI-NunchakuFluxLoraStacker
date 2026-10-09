@@ -16,6 +16,6 @@ class BooleanBasic:
         return (boolean,)
 
 NODE_CLASS_MAPPINGS = {
-    "BooleanBasic": BooleanBasic,
+    "CAI_BooleanBasic": BooleanBasic,
 }
 

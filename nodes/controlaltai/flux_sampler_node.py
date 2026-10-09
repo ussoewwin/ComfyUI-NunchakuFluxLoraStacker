@@ -59,6 +59,6 @@ class FluxSampler:
         return (out,)
 
 NODE_CLASS_MAPPINGS = {
-    "FluxSampler": FluxSampler
+    "CAI_FluxSampler": FluxSampler
 }
 

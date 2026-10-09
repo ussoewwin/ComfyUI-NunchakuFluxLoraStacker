@@ -31,6 +31,6 @@ class GetImageSizeRatio:
         return a
 
 NODE_CLASS_MAPPINGS = {
-    "GetImageSizeRatio": GetImageSizeRatio,
+    "CAI_GetImageSizeRatio": GetImageSizeRatio,
 }
 

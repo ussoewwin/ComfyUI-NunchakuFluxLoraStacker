@@ -21,7 +21,7 @@ class IntegerSettings:
 
 
 NODE_CLASS_MAPPINGS = {
-    "IntegerSettings": IntegerSettings,
+    "CAI_IntegerSettings": IntegerSettings,
 }
 
 
