@@ -39,7 +39,7 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
     
     <img src="png/colorfilter.png" width="400">
 
-8. **Florence-2** (four nodes: `DownloadAndLoadFlorence2Model`, `DownloadAndLoadFlorence2Lora`, `Florence2ModelLoader`, `Florence2Run`) — Load Florence-2–family vision-language checkpoints (Hugging Face download or local `models/LLM`), optional PEFT LoRA, then run captioning, OCR, DocVQA, grounding, segmentation, and prompt-generation tasks; outputs include `FL2MODEL`, `PEFTLORA`, annotated images, masks, and strings.
+8. **Florence-2** (four nodes: `NFL2_DownloadAndLoadFlorence2Model`, `NFL2_DownloadAndLoadFlorence2Lora`, `NFL2_Florence2ModelLoader`, `NFL2_Florence2Run`) — Load Florence-2–family vision-language checkpoints (Hugging Face download or local `models/LLM`), optional PEFT LoRA, then run captioning, OCR, DocVQA, grounding, segmentation, and prompt-generation tasks; outputs include `FL2MODEL`, `PEFTLORA`, annotated images, masks, and strings.
 
     <img src="png/Florence2.png" width="400">
 
@@ -236,7 +236,7 @@ Universal LoRA stacker for **standard ComfyUI `MODEL` + `CLIP` pipelines** (SDXL
 
 ## Florence-2 nodes
 
-Vision-language nodes built from the Florence-2 model stack bundled under `nodes/florence2/`. They appear under the ComfyUI category **Florence2**.
+Vision-language nodes built from the Florence-2 model stack bundled under `nodes/florence2/`. They appear under the ComfyUI category **Florence2**. Their class types are namespaced with the `NFL2_` prefix (e.g. `NFL2_Florence2Run`) to avoid `class_type` collisions with other Florence-2 packs.
 
 ### Upstream and integration
 
@@ -249,17 +249,17 @@ The Florence-2 implementation here started from **[kijai/ComfyUI-Florence2](http
 
 ### Model locations
 
-- **HF download path**: `DownloadAndLoadFlorence2Model` saves weights under **`ComfyUI/models/LLM/<short_repo_name>/`** (e.g. `Florence-2-base` for `microsoft/Florence-2-base`).
-- **Local path**: `Florence2ModelLoader` lists subfolders already present under **`ComfyUI/models/LLM`**.
+- **HF download path**: `NFL2_DownloadAndLoadFlorence2Model` saves weights under **`ComfyUI/models/LLM/<short_repo_name>/`** (e.g. `Florence-2-base` for `microsoft/Florence-2-base`).
+- **Local path**: `NFL2_Florence2ModelLoader` lists subfolders already present under **`ComfyUI/models/LLM`**.
 
 ### Node reference
 
 | Node | Role |
 |------|------|
-| **DownloadAndLoadFlorence2Model** | Choose a preset Hugging Face repo, `fp16` / `bf16` / `fp32`, and **attention** backend; optional **`PEFTLORA`** input and optional `.bin` → `.safetensors` conversion. Returns **`florence2_model`** (`FL2MODEL`). |
-| **DownloadAndLoadFlorence2Lora** | Downloads the fixed PixelProse LoRA repo for chaining into the loader. Returns **`lora`** (`PEFTLORA`). |
-| **Florence2ModelLoader** | Same outputs as the HF downloader but **`model`** is a local directory name under `models/LLM`. |
-| **Florence2Run** | Consumes **`IMAGE`**, **`FL2MODEL`**, **`text_input`**, and **`task`** (e.g. `caption`, `detailed_caption`, `ocr`, `docvqa`, `region_proposal`, …). Optional sampling controls, mask selection string, and seed. Returns **`image`**, **`mask`**, **`caption`**, **`data`** (`JSON`). |
+| **NFL2_DownloadAndLoadFlorence2Model** | Choose a preset Hugging Face repo, `fp16` / `bf16` / `fp32`, and **attention** backend; optional **`PEFTLORA`** input and optional `.bin` → `.safetensors` conversion. Returns **`florence2_model`** (`FL2MODEL`). |
+| **NFL2_DownloadAndLoadFlorence2Lora** | Downloads the fixed PixelProse LoRA repo for chaining into the loader. Returns **`lora`** (`PEFTLORA`). |
+| **NFL2_Florence2ModelLoader** | Same outputs as the HF downloader but **`model`** is a local directory name under `models/LLM`. |
+| **NFL2_Florence2Run** | Consumes **`IMAGE`**, **`FL2MODEL`**, **`text_input`**, and **`task`** (e.g. `caption`, `detailed_caption`, `ocr`, `docvqa`, `region_proposal`, …). Optional sampling controls, mask selection string, and seed. Returns **`image`**, **`mask`**, **`caption`**, **`data`** (`JSON`). |
 
 ### Requirements (Florence-2)
 
