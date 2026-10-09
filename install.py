@@ -43,7 +43,7 @@ ENGINE_DIR = ROOT / "nodes" / "CCSR" / "trt_engines"
 # installed or upgraded to latest when missing or outdated.
 TRT_STACK = [
     ("tensorrt_rtx", "tensorrt-rtx==1.6.1.120", "1.6.1"),
-    ("triton", "triton-windows==3.8.0.post28", "3.8.0"),
+    ("triton", "triton-windows" if sys.platform.startswith("win") else "triton", None),
     ("onnx", "onnx==1.22.0", "1.22.0"),
     ("onnxscript", "onnxscript==0.7.1", "0.7.1"),
     ("polygraphy", "polygraphy==0.53.4", "0.53.4"),

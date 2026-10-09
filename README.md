@@ -85,7 +85,7 @@ The CCSR upscaler runs with NVIDIA TensorRT-RTX acceleration. You can install al
   Double-click **`Install TensorRT CCSR.bat`** in the repository root.
   - Automatically locates your ComfyUI embedded Python environment (`python_embeded\python.exe`), an active virtualenv, or PATH Python (override with `-PythonPath "path\to\python.exe"`).
   - Verifies PyTorch / CUDA before installing.
-  - Installs `requirements.txt` and ensures the validated TensorRT-RTX runtime stack (`tensorrt-rtx==1.6.1.120`, `triton-windows==3.8.0.post28`, `onnx==1.22.0`, `onnxscript==0.7.1`, `polygraphy==0.53.4`) using `--no-deps` to preserve your ComfyUI PyTorch/CUDA environment.
+  - Installs `requirements.txt` and ensures the validated TensorRT-RTX runtime stack (`tensorrt-rtx==1.6.1.120`, `triton-windows` (latest), `onnx==1.22.0`, `onnxscript==0.7.1`, `polygraphy==0.53.4`) using `--no-deps` to preserve your ComfyUI PyTorch/CUDA environment.
   - Downloads the engine artifacts (`ccsr_apply_f16io.rtxplan` and `ccsr_trt_aux.safetensors`, ~2.5 GB total) from Hugging Face into `nodes/CCSR/trt_engines/`, with resume support, retries and SHA256 verification.
   - Runs full readiness verification (`scripts/verify_install.py`) and records logs to `outputs/install.log`; a `.ccsr-trt-installed` marker is written on success.
   - Optional switches: `-SkipEngine` (runtime stack only, no engine download) and `-Repair` (force-reinstall the stack and deep-verify the engine artifacts with SHA256, re-downloading any that fail).
@@ -343,7 +343,7 @@ TensorRT execution path (engine-only, no full checkpoint required). The ControlN
 | `ccsr_apply_f16io.rtxplan` | `nodes/CCSR/trt_engines/` |
 | `ccsr_trt_aux.safetensors` | `nodes/CCSR/trt_engines/` |
 
-> Automated setup: Running `install.py` (or double-clicking `Install TensorRT CCSR.bat`) automatically installs the validated TensorRT-RTX stack (`tensorrt-rtx==1.6.1.120`, `triton-windows==3.8.0.post28`, `onnx==1.22.0`, `onnxscript==0.7.1`, `polygraphy==0.53.4`) and downloads missing engine files (`ccsr_apply_f16io.rtxplan`, `ccsr_trt_aux.safetensors`) with resume support and SHA256 verification. Use `--skip-engine` for the runtime stack only, `--repair` to force-reinstall the stack and re-verify the engine files, and `python scripts/verify_install.py` to check readiness at any time.
+> Automated setup: Running `install.py` (or double-clicking `Install TensorRT CCSR.bat`) automatically installs the validated TensorRT-RTX stack (`tensorrt-rtx==1.6.1.120`, `triton-windows` (latest), `onnx==1.22.0`, `onnxscript==0.7.1`, `polygraphy==0.53.4`) and downloads missing engine files (`ccsr_apply_f16io.rtxplan`, `ccsr_trt_aux.safetensors`) with resume support and SHA256 verification. Use `--skip-engine` for the runtime stack only, `--repair` to force-reinstall the stack and re-verify the engine files, and `python scripts/verify_install.py` to check readiness at any time.
 
 `steps` is the effective diffusion step count: the t_max/t_min band design is preserved while the schedule is densified so the truncated range contains exactly `steps` timesteps.
 
