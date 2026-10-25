@@ -9,6 +9,8 @@
 
 ## 发布历史
 
+- v2.1.5 - 兼容 transformers 5.x 修复 Florence-2 崩溃：修复因新版 transformers（5.20+）生成策略校验加强，导致 Florence-2 节点在生成时抛出 ValueError: You have modified the pretrained model configuration to control generation 而崩溃的问题。Florence-2-PromptGen 的 config.json 携带 forced_bos_token_id: 0，而 transformers 5.x 不再允许在 model.config 上携带生成参数并在 generate() 时直接报错。模型加载器现在会从顶层 config 与语言模型（BART）config 中剥离旧式生成参数，并以正确的 BART 默认值（decoder_start_token_id=2、eos_token_id=2、pad_token_id=1、forced_bos_token_id=0、forced_eos_token_id=2）显式写入 model.generation_config。已在 transformers 5.20.2 上实测加载模型并运行 generate() 验证通过。（[发布说明](v2.1.5.md)）
+
 - v2.1.4 - 废弃 `install.py`、统一 TensorRT 依赖至 `requirements.txt`、按需自动下载 CCSR 引擎：彻底废弃并移除 `install.py`，消除因自动下载大体积二进制文件与子进程 pip 执行导致的 Comfy Registry (CNR) 安全标记（Security Flagged）。所有 TensorRT 运行时依赖（`triton-windows` / `triton`、`tensorrt-rtx`、`onnx`、`onnxscript`、`polygraphy`）现已严格统一整合至根目录 `requirements.txt`。重构了 `LoadCCSRModelTensorRT` 节点，当在 ComfyUI 中运行该节点且本地缺失引擎文件时，会自动通过流式传输并校验 SHA256 从 Hugging Face 按需自动下载所需引擎文件（`ccsr_apply_f16io.rtxplan` 与 `ccsr_trt_aux.safetensors`）。（[发布说明](v2.1.4.md)）
 
 - v2.1.3 - `triton-windows` 动态解析与解除版本固定：移除了 `requirements.txt`、`install.py` 及相关文档中对 `triton-windows==3.8.0.post28` 的硬编码版本绑定。安装流水线与环境配置现在会自动从 PyPI 解析并安装最新的 `triton-windows` 版本，自适应更新的 PyTorch 运行时与环境更新，无需手动维护版本。（[发布说明](v2.1.3.md)）

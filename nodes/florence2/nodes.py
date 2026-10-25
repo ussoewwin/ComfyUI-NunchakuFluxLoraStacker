@@ -27,6 +27,13 @@ def load_model(model_path: str, attention: str, dtype: torch.dtype, offload_devi
     from accelerate.utils import set_module_tensor_to_device
 
     config = Florence2Config.from_pretrained(model_path)
+    # transformers>=5 forbids legacy generation params on model.config (they must live on
+    # model.generation_config); strip them or generate() raises ValueError when the model's
+    # config.json carries forced_bos_token_id / forced_eos_token_id etc.
+    from transformers import GenerationConfig as _GenerationConfig
+    for _k in set(_GenerationConfig._get_default_generation_params()) - {'use_cache'}:
+        if getattr(config, _k, None) is not None:
+            setattr(config, _k, None)
     sage_mode = None
     if attention.startswith('sage_attention'):
         sage_mode = attention
@@ -95,14 +102,27 @@ def load_model(model_path: str, attention: str, dtype: torch.dtype, offload_devi
         model.language_model.tie_weights()
 
     # Ensure generation_config has correct values from the language model config
-    lang_config = config.text_config
+    lang_config = model.language_model.config
+    # transformers>=5 forbids legacy generation params on model.config (they must live on
+    # model.generation_config); strip them or generate() raises ValueError.
+    for _k in set(_GenerationConfig._get_default_generation_params()) - {'use_cache'}:
+        if getattr(lang_config, _k, None) is not None:
+            setattr(lang_config, _k, None)
     if hasattr(model.language_model, 'generation_config'):
         gen_cfg = model.language_model.generation_config
-        gen_cfg.decoder_start_token_id = getattr(lang_config, 'decoder_start_token_id', 2)
-        gen_cfg.eos_token_id = getattr(lang_config, 'eos_token_id', 2)
-        gen_cfg.pad_token_id = getattr(lang_config, 'pad_token_id', 1)
-        gen_cfg.forced_bos_token_id = getattr(lang_config, 'forced_bos_token_id', 0)
-        gen_cfg.forced_eos_token_id = getattr(lang_config, 'forced_eos_token_id', 2)
+        # getattr() alone can't provide fallbacks here: the strip above sets these
+        # attributes to None explicitly, so a missing-value default must be applied
+        # via an explicit None check (BART needs forced_bos_token_id=0 to start captions).
+        _gen_defaults = {
+            'decoder_start_token_id': 2,
+            'eos_token_id': 2,
+            'pad_token_id': 1,
+            'forced_bos_token_id': 0,
+            'forced_eos_token_id': 2,
+        }
+        for _k, _default in _gen_defaults.items():
+            _v = getattr(lang_config, _k, None)
+            setattr(gen_cfg, _k, _v if _v is not None else _default)
 
     return model, processor
 
