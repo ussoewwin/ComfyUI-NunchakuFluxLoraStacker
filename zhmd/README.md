@@ -395,7 +395,7 @@ TensorRT 执行路径（纯引擎，无需完整检查点）。ControlNet+UNet �
 
 ### 上游和集成
 
-这些节点源自 **[chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)**。
+这些节点源自 **[chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)**（Apache-2.0 许可证）。
 
 由于 ComfyUI 近期版本的前端架构变更（例如 LiteGraph 节点实例上废弃了 `node.comfyClass`、`graphToPrompt` 必须绑定接收者、以及残留的悬空链接引用），官方上游仓库在 ComfyUI 前端 1.52.7+ 下已无法正常工作。
 
@@ -420,7 +420,7 @@ TensorRT 执行路径（纯引擎，无需完整检查点）。ControlNet+UNet �
 - Florence-2 节点源自 [kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2)；在此扩展了 Sage Attention 3 和 Transformers 5.x 支持，然后集成到 `nodes/florence2/` 下（参见上方 **上游和集成**）
 - ControlAltAI — 参见 **[ControlAltAI 节点](#controlaltai-节点)**（上游 MIT）
 - CCSR 节点源自 [kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR)；在此扩展了最新 ComfyUI 和 Python 3.13 支持，然后集成到 `nodes/CCSR/` 下（参见上方 **上游和集成**）
-- Use Everywhere 节点源自 [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)；在此扩展了最新 ComfyUI 前端（1.52.7+）兼容性支持，然后集成到 `nodes/everywhere/` 和 `js/everywhere/` 下（参见上方 **[Use Everywhere 节点](#use-everywhere-节点)**）
+- Use Everywhere 节点源自 [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)（Apache-2.0）；在此扩展了最新 ComfyUI 前端（1.52.7+）兼容性支持，然后集成到 `nodes/everywhere/` 和 `js/everywhere/` 下（参见上方 **[Use Everywhere 节点](#use-everywhere-节点)**）
 
 ## 许可证
 
@@ -429,4 +429,4 @@ TensorRT 执行路径（纯引擎，无需完整检查点）。ControlNet+UNet �
 - `nodes/florence2/` 下的 Florence-2 代码源自 [kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2)，根据 **MIT 许可证** 授权；有关该子树的完整文本和版权声明，请参阅 `nodes/florence2/LICENSE`。
 - `nodes/controlaltai/` 下的 ControlAltAI 代码 — **MIT 许可证**（参见 [ControlAltAI 节点](#controlaltai-节点)）
 - `nodes/CCSR/` 下的 CCSR 代码源自 [kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR)（基于原始 [csslc/CCSR](https://github.com/csslc/CCSR) 的 Apache-2.0 实现）。
-- `nodes/everywhere/` 与 `js/everywhere/` 下的 Use Everywhere 代码源自 [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)。
+- `nodes/everywhere/` 与 `js/everywhere/` 下的 Use Everywhere 代码基于 **Apache-2.0 许可证** 从 [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere) 衍生并移植；有关该子树的完整许可证文本，请参阅 `nodes/everywhere/LICENSE`。

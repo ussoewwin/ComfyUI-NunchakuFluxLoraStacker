@@ -397,7 +397,7 @@ Broadcast and virtual routing nodes under category **everywhere** in ComfyUI (`n
 
 ### Upstream and integration
 
-These nodes trace to **[chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)**.
+These nodes trace to **[chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)** (Apache-2.0 License).
 
 Due to front-end architecture changes in recent ComfyUI releases (such as the deprecation of `node.comfyClass` on LiteGraph node instances, required receiver binding on `graphToPrompt`, and uncleaned dangling link references), the official upstream repository ceased working on ComfyUI frontend 1.52.7+.
 
@@ -422,7 +422,7 @@ See [Changelog](md/CHANGELOG.md) for the full release history.
 - Florence-2 nodes trace to [kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2); extended here for Sage Attention 3 and Transformers 5.x, then integrated under `nodes/florence2/` (see **Upstream and integration** above)
 - ControlAltAI — see **[ControlAltAI nodes](#controlaltai-nodes)** (upstream MIT)
 - CCSR nodes trace to [kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR); extended here for the latest ComfyUI environment and Python 3.13, then integrated under `nodes/CCSR/` (see **Upstream and integration** above)
-- Use Everywhere nodes trace to [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere); updated here for modern ComfyUI frontend compatibility (1.52.7+) and integrated under `nodes/everywhere/` and `js/everywhere/` (see **[Use Everywhere nodes](#use-everywhere-nodes)** above)
+- Use Everywhere nodes trace to [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere) (Apache-2.0); updated here for modern ComfyUI frontend compatibility (1.52.7+) and integrated under `nodes/everywhere/` and `js/everywhere/` (see **[Use Everywhere nodes](#use-everywhere-nodes)** above)
 
 ## License
 
@@ -431,4 +431,4 @@ See [Changelog](md/CHANGELOG.md) for the full release history.
 - Florence-2 code under `nodes/florence2/` is derived from [kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2) and is licensed under the **MIT License**; see `nodes/florence2/LICENSE` for the full text and copyright notice for that subtree.
 - ControlAltAI code under `nodes/controlaltai/` — **MIT License** (see [ControlAltAI nodes](#controlaltai-nodes))
 - CCSR code under `nodes/CCSR/` is derived from [kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR) (which is based on the original [csslc/CCSR](https://github.com/csslc/CCSR) Apache-2.0 implementation).
-- Use Everywhere code under `nodes/everywhere/` and `js/everywhere/` is derived from [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere).
+- Use Everywhere code under `nodes/everywhere/` and `js/everywhere/` is derived and ported from [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere) and is licensed under the **Apache-2.0 License**; see `nodes/everywhere/LICENSE` for the full text and copyright notice for that subtree.
