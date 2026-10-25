@@ -9,6 +9,8 @@
 
 ## 发布历史
 
+- v2.1.6 - 集成 Use Everywhere 节点（`hswq_` 前缀）与 ComfyUI 前端 1.52.7+ 兼容：将 Use Everywhere 广播与虚拟连线节点家族（位于 `nodes/everywhere/` 与前端脚本 `js/everywhere/`）从基于 [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere) 的维护分支直接合并至本仓库，以在上游停滞 3 个月且在 ComfyUI 前端 1.52.7+ 架构下失效后减少独立仓库的维护负担。所有节点类名与显示名均赋予 **`hswq_`** 前缀（`hswq_AnythingEverywhere`、`hswq_SeedEverywhere`、`hswq_AnythingSomewhere`、`hswq_AnythingEverywhereTriplet`、`hswq_AnythingEverywherePrompts`、`hswq_ComboClone`、`hswq_SimpleString`），消除与上游插件的同名冲突。安全解耦了前端 CustomElement 自定义标签、提示框 ID 及扩展生命周期，实现对原仓库的零外部依赖。（[发布说明](v2.1.6.md)）
+
 - v2.1.5 - 兼容 transformers 5.x 修复 Florence-2 崩溃：修复因新版 transformers（5.20+）生成策略校验加强，导致 Florence-2 节点在生成时抛出 ValueError: You have modified the pretrained model configuration to control generation 而崩溃的问题。Florence-2-PromptGen 的 config.json 携带 forced_bos_token_id: 0，而 transformers 5.x 不再允许在 model.config 上携带生成参数并在 generate() 时直接报错。模型加载器现在会从顶层 config 与语言模型（BART）config 中剥离旧式生成参数，并以正确的 BART 默认值（decoder_start_token_id=2、eos_token_id=2、pad_token_id=1、forced_bos_token_id=0、forced_eos_token_id=2）显式写入 model.generation_config。已在 transformers 5.20.2 上实测加载模型并运行 generate() 验证通过。（[发布说明](v2.1.5.md)）
 
 - v2.1.4 - 废弃 `install.py`、统一 TensorRT 依赖至 `requirements.txt`、按需自动下载 CCSR 引擎：彻底废弃并移除 `install.py`，消除因自动下载大体积二进制文件与子进程 pip 执行导致的 Comfy Registry (CNR) 安全标记（Security Flagged）。所有 TensorRT 运行时依赖（`triton-windows` / `triton`、`tensorrt-rtx`、`onnx`、`onnxscript`、`polygraphy`）现已严格统一整合至根目录 `requirements.txt`。重构了 `LoadCCSRModelTensorRT` 节点，当在 ComfyUI 中运行该节点且本地缺失引擎文件时，会自动通过流式传输并校验 SHA256 从 Hugging Face 按需自动下载所需引擎文件（`ccsr_apply_f16io.rtxplan` 与 `ccsr_trt_aux.safetensors`）。（[发布说明](v2.1.4.md)）
