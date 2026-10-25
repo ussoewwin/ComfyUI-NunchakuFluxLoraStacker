@@ -1,0 +1,387 @@
+import { i18n_functional } from "./i18n.js";
+import { default_priority } from "./ue_properties.js";
+import { connection_from_output_as_input, visible_graph } from "./use_everywhere_subgraph_utils.js";
+import { nodes_in_my_group, nodes_not_in_my_group, nodes_my_color, nodes_not_my_color, nodes_in_groups_matching } from "./use_everywhere_ui.js";
+import { Logger, node_is_live, get_real_node, get_connection, find_duplicate_broadcasted_types, is_able_to_broadcast } from "./use_everywhere_utilities.js";
+
+
+export function display_name(node) { 
+    if (node?.title) return node.title;
+    if (node?.type) return node.type;
+    if (node?.properties?.['Node name for S&R']) return node.properties['Node name for S&R'];
+    if (node?.id==-20) return "subgraph output node";
+    if (node?.id==-10) return "subgraph input node";
+    return "un-nameable node";
+}
+
+export function input_name(input) {
+    return input?.label || input?.localized_name || input?.name || "";
+}
+
+function regex_for(node, k) {
+    try {
+        const w0 = node.properties.ue_properties[`${k}_regex`]
+        return (w0 && w0!='.*') ? {regex:new RegExp(w0), invert:!!node.properties.ue_properties[`${k}_regex_invert`]} : null;
+    } catch (e) {
+        return null
+    }
+}
+
+
+const P_REGEXES = ['prompt', 'negative']
+const PROMPT_REGEXES = [new RegExp(i18n_functional('prompt_regex')), new RegExp(i18n_functional('negative_regex'))]
+
+/*
+The UseEverywhere object represents a single 'broadcast'. It generally contains
+    controller                  - the UE node that controls the broadcast
+    control_node_input_index    - the input on that node 
+    type                        - the data type
+    output                      - the output that is being rebroadcast as a list (node_id, output_index)
+    title_regex, input_regex    - the UE? matching rules
+    priority                    - priority :)
+    graph                       - the graph or subgraph
+*/
+class UseEverywhere {
+    constructor() {
+        this.sending_to = [];
+        Object.assign(this, arguments[0]);
+        if (this.priority === undefined) this.priority = 0;
+        if (this.graph === undefined) this.graph = visible_graph();
+        this.string_to_combo = (this.controller.properties.ue_properties.string_to_combo > 0)
+        this.send_to_any     = (this.controller.properties.ue_properties.send_to_any > 0)
+
+        const from_node = get_real_node(this?.output[0], this.graph);
+        const to_node = get_real_node(this?.controller.id, this.graph)
+        try {
+            if (this.output[0]==-10) {
+                this.description = `source subgraph input slot ${this?.output[1]} ` +
+                                `-> control "${display_name(to_node)}", ${to_node.inputs[this?.control_node_input_index]?.name} (${this?.controller?.id}.${this?.control_node_input_index}) ` +
+                                `"${this.type}" <-  (priority ${this.priority})`;
+            }
+            else if (this.control_node_input_index>=0) {
+                this.description = `source "${display_name(from_node)}", ${from_node.outputs[this?.output[1]]?.name} (${this?.output[0]}.${this?.output[1]}) ` +
+                                `-> control "${display_name(to_node)}", ${to_node.inputs[this?.control_node_input_index]?.name} (${this?.controller.id}.${this?.control_node_input_index}) ` +
+                                `"${this.type}" <-  (priority ${this.priority})`;
+            } else {
+                this.description = `source "${display_name(from_node)}", ${from_node.outputs[this?.output[1]]?.name} (${this?.output[0]}.${this?.output[1]}) ` +
+                                `"${this.type}" <-  (priority ${this.priority})`;
+            }                
+        } catch (e) {
+            // for breakpointing
+            throw e;
+        }
+        if (this.title_regex) this.description += ` - node title regex '${this.title_regex.regex?.source} ${(this.title_regex.invert) ? "(inverted)" : ""}'`;
+        if (this.input_regex) this.description += ` - input name regex '${this.input_regex.regex?.source} ${(this.input_regex.invert) ? "(inverted)" : ""}''`;
+    }
+
+    sending_differs_from(another_ue) {
+        if (this.sending_to.length != another_ue.sending_to.length) return true;
+        for (var i=0; i<this.sending_to.length; i++) {
+            if ( (this.sending_to[i].node.id != another_ue.sending_to[i].node.id) ||
+                 (this.sending_to[i].input_index != another_ue.sending_to[i].input_index) ) return true;
+        }
+        return false;
+    }
+    /*
+    Does this broadcast match a given node,input?
+    Logic here is to run through a series of reasons why it would NOT match.
+    */
+    matches(node, input) {
+        if (!node) {
+            Logger.log_problem(`UseEverywhere.matches called with no node`);
+            return false;
+        }
+
+        // additional requirement function
+        if (this.additional_requirement && !this.additional_requirement(input, node)) return false
+
+        // don't send to self
+        if (this.output[0] == node.id) return false;
+
+        // type must match except in special cases
+        if (this.type != input.type) {
+            if (this.type=="STRING" && input.type=="COMBO" && this.string_to_combo) {
+                // allow a string to be sent to a COMBO
+            } else if (input.type=="*" && this.send_to_any) {
+                // allow sending to '*' inputs if send_to_any is true
+            } else {
+                return false
+            }
+        } 
+
+        // apply restrictions (colour and group, includes group regex)
+        if (this.restrict_to && !this.restrict_to.includes(node.id)) return false;
+
+        // title regex
+        if (this.title_regex) {
+            if ( this.title_regex.regex.test(display_name(node)) == this.title_regex.invert ) return false;
+        }
+
+        // input regex
+        if (this.input_regex) {
+            if (this.input_regex.regex.test(input_name(input))==this.input_regex.invert ) return false;
+        }
+        
+        return true;
+    }
+    note_sending_to(node, input) {
+        var input_index
+        if (node.inputs) input_index = node.inputs.findIndex((n) => n.name==input.name);
+        else if (node.slots) input_index = node.slots.findIndex((n) => n.name==input.name);
+        if (input_index===undefined) {
+            Logger.log_problem(`UseEverywhere.note_sending_to could not find input index for node ${node.id} input ${input.name}`);
+        } else {
+            this.sending_to.push({node:node, input:input, input_index:input_index})
+        }
+    }
+    describe_sending(){
+        var description = "  Linked to:";
+        this.sending_to.forEach((st) => description += `\n  -> ${display_name(st.node)}, ${st.input.name}`);
+        if (this.sending_to.length===0) description += ' nothing';
+        return description;
+    }
+    describe() {
+        return this.description + "\n" + this.describe_sending();
+    }
+}
+
+function validity_errors(params) {
+    if (!node_is_live(params.controller)) return `UE node ${params.controller.id} is not alive`;
+    if (params.output[0]!=-10 && !node_is_live(get_real_node(params.output[0], params.graph))) return `upstream node ${params.output[0]} is not alive`;
+    return "";
+}
+
+export class Ambiguity {
+    constructor( data ) {
+        Object.assign(this, data)
+        this.matches = []
+    }
+/*
+    name    : display_name of node
+    id      : node.id
+    input   : input.name
+    graph   : the graph the node is in
+    matches : [
+        {
+            type  : m[i].controller.type,
+            id    : m[i].controller.id,
+            index : m[i].control_node_input_index
+        }
+    ]
+*/
+    toString() {
+        var m = `Node ${this.name} (${this.id}) input ${this.input} matches ${this.matches.length} sources:`
+        this.matches.forEach((match)=>{
+            m += `\n - ${match.type} (${match.id}) slot ${match.index}`
+        })
+        return m
+    }
+
+}
+
+export class UseEverywhereList {
+    constructor() { this.ues = []; this.unmatched_inputs = []; }
+
+    differs_from(another_uel) {
+        if (!another_uel || !another_uel.ues || !this.ues) return true;
+        if (this.ues.length != another_uel.ues.length) return true;
+        for (var i=0; i<this.ues.length; i++) {
+            if (this.ues[i].sending_differs_from(another_uel.ues[i])) return true;
+        }
+        return false;
+    }
+
+    add_ue(node, control_node_input_index, type, output, input_regex_override, additional_requirement) {
+        const params = {
+            controller: node,
+            control_node_input_index: control_node_input_index, 
+            type: type,
+            output: output,
+            title_regex: regex_for(node, 'title'),
+            input_regex: input_regex_override || regex_for(node, 'input'),
+            group_regex: regex_for(node, 'group'),
+            priority: node.properties.ue_properties.priority || default_priority(node), 
+            graph: node.graph,
+            additional_requirement: additional_requirement,
+        };
+
+        if (node.properties.ue_properties.group_restricted == 1) params.restrict_to = nodes_in_my_group(node);
+        if (node.properties.ue_properties.group_restricted == 2) params.restrict_to = nodes_not_in_my_group(node);
+
+        if (node.properties.ue_properties.color_restricted == 1) params.restrict_to = nodes_my_color(node, params.restrict_to);
+        if (node.properties.ue_properties.color_restricted == 2) params.restrict_to = nodes_not_my_color(node, params.restrict_to);
+
+        if (params.group_regex) params.restrict_to = nodes_in_groups_matching(params.group_regex, params.restrict_to, graph);
+        
+        var fail = ""
+        var ue = null;
+        try {
+            ue = new UseEverywhere(params);
+            fail = validity_errors(params);
+        } catch (e) {
+            Logger.log_problem(`Error creating UseEverywhere object from node ${node.id}: ${e}`);
+            Logger.log_error(e);
+        }
+        if (fail==="") { 
+            this.ues.push(ue);
+            Logger.log_detail(`Added ${ue.description}`)
+        } else {
+            Logger.log_info(`Rejected ${ue?.description} because ${fail}`);
+        }
+    }
+
+    find_best_match(node, input, _ambiguities) {
+        this.unmatched_inputs.push({"node":node, "input":input});
+        var matches = this.ues.filter((candidate) => (  
+            candidate.matches(node, input)
+        ));
+        if (matches.length==0) {
+            Logger.log_detail(`'${display_name(node)}' optional input '${input.name}' unmatched`)
+            return undefined; 
+        }
+        if (matches.length>1) {
+            matches.sort((a,b) => b.priority-a.priority);
+            if(matches[0].priority == matches[1].priority) {
+                const msg = new Ambiguity( { name:display_name(node), id:node.id, input:input.name, graph:(node.graph || node.subgraph) } )
+
+                matches.filter((m)=>(m.priority == matches[0].priority)).forEach((m)=>{
+                    var ni = node.inputs?.findIndex((i)=>(i==input))
+                    if (ni==undefined) ni = node.allSlots?.findIndex((i)=>(i==input))
+                    msg.matches.push( {
+                        type  : m.controller.type,
+                        id    : m.controller.id,
+                        index : m.control_node_input_index,
+                        node  : node,
+                        node_index : ni
+                    })
+                })
+
+                _ambiguities.push(msg);
+                return undefined;
+            }
+        }
+        matches[0].note_sending_to(node, input);
+        Logger.log_detail(`'${display_name(node)}' input '${input.name}' matched to ${matches[0].description}`);
+        return matches[0];        
+    }
+
+    all_connected_inputs(for_node) {
+        const ue_connections = [];
+        this.ues.forEach((ue) => { 
+            ue.sending_to.forEach((st) => {
+                if (st.node.id == for_node.id) {
+                    ue_connections.push({
+                        type : ue.type, 
+                        input_index : st.input_index,
+                        control_node : get_real_node(ue.controller.id, ue.graph),
+                        control_node_input_index : ue.control_node_input_index,
+                        sending_to : st.node,
+                    });
+                }
+            });
+        });
+        return ue_connections;
+    }
+
+    node_sending_anywhere(node) {
+        return this.ues.find((ue)=>(ue.controller?.id==node.id && ue.sending_to?.length>0)) ? true : false;
+    }
+
+    all_sending_slots(for_node) {
+        const sending_slots = new Set()
+        this.ues.filter((ue)=>(ue.controller.id == for_node.id) && (ue.sending_to.length>0)).forEach((ue) => { 
+            sending_slots.add(ue.control_node_input_index)
+        });
+        return sending_slots;        
+    }
+
+    all_ue_connections() {
+        const ue_connections = [];
+        this.ues.forEach((ue) => { 
+            ue.sending_to.forEach((st) => {
+                ue_connections.push({
+                    type : ue.type, 
+                    input_index : st.input_index,
+                    control_node : get_real_node(ue.controller.id, ue.graph),
+                    control_node_input_index : ue.control_node_input_index,
+                    sending_to : st.node, 
+                    graph: ue.graph,
+                });
+            });
+        });
+        return ue_connections;        
+    }
+
+    add_ue_from_node(node) {
+
+        if (node.properties.ue_properties?.seed_inputs) {
+            this.add_ue(node, -1, "INT", [node.id.toString(),0], regex_for(node, 'input') );
+        } else {
+            var check_if_able_to_broadcast
+            var the_possibles
+            var connection_finder
+            if (node.properties.ue_convert) {
+                connection_finder = connection_from_output_as_input
+                the_possibles = node.outputs
+                check_if_able_to_broadcast = (node, i) => {
+                    const name = node.outputs[i].name
+                    return is_able_to_broadcast(node, name)
+                }
+            } else {
+                connection_finder = get_connection
+                the_possibles = node.inputs
+                check_if_able_to_broadcast = ()=>(true)
+            }
+
+            const duplicated_broadcasted_types = find_duplicate_broadcasted_types(node)
+
+            the_possibles.forEach((possible, i) => {
+                const connection = connection_finder(node, i);
+                if (connection.link && check_if_able_to_broadcast(node,i)) {
+                    const input_regex = undefined
+                    var additional_requirement = null
+                    if (duplicated_broadcasted_types.has(connection.type) || node.properties.ue_properties.apply_to_unrepeated) {
+                        const input_name = possible.label || possible.name
+                        const rule = node.properties.ue_properties?.repeated_type_rule || 0
+                        if (rule == 0) { // 0 is exact match of input name
+                            additional_requirement = (target_input) => { 
+                                const target_name = target_input.label || target_input.name
+                                return (target_name == input_name) 
+                            }
+                        }
+                        if (rule == 1) { // 1 is match start of input name
+                            additional_requirement = (target_input) => { 
+                                const target_name = target_input.label || target_input.name
+                                const chars = Math.min( input_name.length, target_name.length )
+                                return (target_name.substring(0, chars) == input_name.substring(0, chars)) 
+                            }
+                        }
+                        if (rule == 2) { // 2 is match end of input name
+                            additional_requirement = (target_input) => { 
+                                const target_name = target_input.label || target_input.name
+                                const chars = Math.min( input_name.length, target_name.length )
+                                return (target_name.substring(target_name.length - chars) == input_name.substring(input_name.length - chars)) 
+                            }
+                        }
+                        if (rule == 3) { // 3 input is match of target node name
+                            additional_requirement = (_, target_node) => { 
+                                const target_name = target_node.title
+                                return (target_name == input_name) 
+                            }
+                        }
+                        if (rule == 4) { // 4 input as regex matches input
+                            additional_requirement = (target_input, _) => { 
+                                const re = new RegExp(input_name)
+                                const target_name = target_input.label || target_input.name
+                                return re.exec(target_name) 
+                            }
+                        }
+
+                    }
+                    this.add_ue(node, i, connection.type, [connection.link.origin_id.toString(), connection.link.origin_slot], input_regex, additional_requirement);
+                }
+            })
+        }
+    }
+}
+

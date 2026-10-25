@@ -38,6 +38,7 @@ from .nodes.florence2 import NODE_CLASS_MAPPINGS as FLORENCE2_NODES, NODE_DISPLA
 from .nodes.controlaltai import NODE_CLASS_MAPPINGS as CONTROLALTAI_NODES, NODE_DISPLAY_NAME_MAPPINGS as CONTROLALTAI_NAMES
 from .nodes.CCSR import NODE_CLASS_MAPPINGS as CCSR_NODES, NODE_DISPLAY_NAME_MAPPINGS as CCSR_NAMES
 from .nodes.resolution_selector import NODE_CLASS_MAPPINGS as RESOLUTION_SELECTOR_NODES, NODE_DISPLAY_NAME_MAPPINGS as RESOLUTION_SELECTOR_NAMES
+from .nodes.everywhere import NODE_CLASS_MAPPINGS as EVERYWHERE_NODES, NODE_DISPLAY_NAME_MAPPINGS as EVERYWHERE_NAMES
 
 # Add version to classes
 if NunchakuFluxLoraStack is not None:
@@ -53,6 +54,8 @@ for node_class in SDNQ_LORA_NODES.values():
 for node_class in FLORENCE2_NODES.values():
     node_class.__version__ = __version__
 for node_class in CCSR_NODES.values():
+    node_class.__version__ = __version__
+for node_class in EVERYWHERE_NODES.values():
     node_class.__version__ = __version__
 
 # Node mappings
@@ -70,6 +73,7 @@ NODE_CLASS_MAPPINGS = {
     **CONTROLALTAI_NODES,
     **CCSR_NODES,
     **RESOLUTION_SELECTOR_NODES,
+    **EVERYWHERE_NODES,
 }
 
 # Display name mappings
@@ -87,6 +91,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     **CONTROLALTAI_NAMES,
     **CCSR_NAMES,
     **RESOLUTION_SELECTOR_NAMES,
+    **EVERYWHERE_NAMES,
 }
 
 # Register JavaScript extensions

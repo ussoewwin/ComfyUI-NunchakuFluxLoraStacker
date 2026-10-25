@@ -53,6 +53,8 @@
 
     <img src="../png/Resolution%20Selector.png" width="400">
 
+12. **Use Everywhere**（分类 **everywhere**）— Use Everywhere 节点系列的集成移植版本（`hswq_AnythingEverywhere`、`hswq_SeedEverywhere`、`hswq_ComboClone` 等），完全兼容 ComfyUI 前端 1.52.7+（参见下方 **[Use Everywhere 节点](#use-everywhere-节点)**）。
+
 ---
 
 ## 功能 (V1 - 旧版节点)
@@ -387,6 +389,26 @@ TensorRT 执行路径（纯引擎，无需完整检查点）。ControlNet+UNet �
 
 ---
 
+## Use Everywhere 节点
+
+位于 ComfyUI **everywhere** 分类下的广播与虚拟连线路由节点（位于 `nodes/everywhere/`，前端脚本位于 `js/everywhere/`）。类名与显示名均带有 **`hswq_`** 前缀（如 `hswq_AnythingEverywhere`、`hswq_SeedEverywhere`、`hswq_ComboClone`），以避免与上游安装发生冲突。
+
+### 上游和集成
+
+这些节点源自 **[chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)**。
+
+由于 ComfyUI 近期版本的前端架构变更（例如 LiteGraph 节点实例上废弃了 `node.comfyClass`、`graphToPrompt` 必须绑定接收者、以及残留的悬空链接引用），官方上游仓库在 ComfyUI 前端 1.52.7+ 下已无法正常工作。
+
+为此，我创建并维护了一个包含针对性修复的分支，并向上游提交了 Pull Request。然而，官方上游已持续 3 个月完全处于搁置未维护状态，没有任何合并或更新迹象。为了减少单独维护独立仓库的开销，并确保在现代 ComfyUI 中获得可靠的工作环境，该分支已**直接合并到本仓库**的 `nodes/everywhere/` 下，**以减少我自己的独立仓库维护**。
+
+### 节点参考与文档
+
+由于 Use Everywhere 体系包含大量节点、路由修饰符、正则规则以及组/颜色过滤机制，在此逐一罗列所有参数并不切实际。完整的节点功能、设计理念和使用教程请直接参考官方上游仓库：
+
+- **官方完整文档与使用指南**：**[chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)**
+
+---
+
 ## 发布历史
 
 详见 [更新日志](CHANGELOG.md) 获取完整的发布历史。
@@ -398,6 +420,7 @@ TensorRT 执行路径（纯引擎，无需完整检查点）。ControlNet+UNet �
 - Florence-2 节点源自 [kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2)；在此扩展了 Sage Attention 3 和 Transformers 5.x 支持，然后集成到 `nodes/florence2/` 下（参见上方 **上游和集成**）
 - ControlAltAI — 参见 **[ControlAltAI 节点](#controlaltai-节点)**（上游 MIT）
 - CCSR 节点源自 [kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR)；在此扩展了最新 ComfyUI 和 Python 3.13 支持，然后集成到 `nodes/CCSR/` 下（参见上方 **上游和集成**）
+- Use Everywhere 节点源自 [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)；在此扩展了最新 ComfyUI 前端（1.52.7+）兼容性支持，然后集成到 `nodes/everywhere/` 和 `js/everywhere/` 下（参见上方 **[Use Everywhere 节点](#use-everywhere-节点)**）
 
 ## 许可证
 
@@ -406,3 +429,4 @@ TensorRT 执行路径（纯引擎，无需完整检查点）。ControlNet+UNet �
 - `nodes/florence2/` 下的 Florence-2 代码源自 [kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2)，根据 **MIT 许可证** 授权；有关该子树的完整文本和版权声明，请参阅 `nodes/florence2/LICENSE`。
 - `nodes/controlaltai/` 下的 ControlAltAI 代码 — **MIT 许可证**（参见 [ControlAltAI 节点](#controlaltai-节点)）
 - `nodes/CCSR/` 下的 CCSR 代码源自 [kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR)（基于原始 [csslc/CCSR](https://github.com/csslc/CCSR) 的 Apache-2.0 实现）。
+- `nodes/everywhere/` 与 `js/everywhere/` 下的 Use Everywhere 代码源自 [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)。

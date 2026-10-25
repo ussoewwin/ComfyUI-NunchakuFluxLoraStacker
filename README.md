@@ -53,6 +53,8 @@ On **AMD / ROCm** (and other setups where the official `nunchaku` package cannot
 
     <img src="png/Resolution%20Selector.png" width="400">
 
+12. **Use Everywhere** (category **everywhere**) — Integrated port of the Use Everywhere node family (`hswq_AnythingEverywhere`, `hswq_SeedEverywhere`, `hswq_ComboClone`, etc.) with full compatibility for ComfyUI frontend 1.52.7+ (see **[Use Everywhere nodes](#use-everywhere-nodes)** below).
+
 ---
 
 ## Features (V1 - Legacy Node)
@@ -389,6 +391,26 @@ Choose a canvas size from a Flux1-oriented preset list (same aspect-ratio vocabu
 
 ---
 
+## Use Everywhere nodes
+
+Broadcast and virtual routing nodes under category **everywhere** in ComfyUI (`nodes/everywhere/` and frontend scripts under `js/everywhere/`). Class types and display names carry the **`hswq_`** prefix (e.g. `hswq_AnythingEverywhere`, `hswq_SeedEverywhere`, `hswq_ComboClone`) to avoid collisions with upstream installations.
+
+### Upstream and integration
+
+These nodes trace to **[chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)**.
+
+Due to front-end architecture changes in recent ComfyUI releases (such as the deprecation of `node.comfyClass` on LiteGraph node instances, required receiver binding on `graphToPrompt`, and uncleaned dangling link references), the official upstream repository ceased working on ComfyUI frontend 1.52.7+.
+
+To address this, I created and maintained a fork with dedicated fixes and submitted a Pull Request to upstream. However, upstream has remained completely unmaintained for three months with no sign of review or updates. Maintaining an isolated separate repository became unnecessary overhead, so the fork is **merged directly into this pack** under `nodes/everywhere/` **to reduce my own separate-repo maintenance** and guarantee reliable functionality in modern ComfyUI.
+
+### Node reference and documentation
+
+Because the Use Everywhere family contains a large number of nodes, routing modifiers, regex rules, and group/color filtering mechanics, documenting every single parameter here is impractical. Full functional usage, design concepts, and tutorials are available directly on the official upstream repository:
+
+- **Official upstream documentation & usage guide**: **[chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere)**
+
+---
+
 ## Release History
 
 See [Changelog](md/CHANGELOG.md) for the full release history.
@@ -400,6 +422,7 @@ See [Changelog](md/CHANGELOG.md) for the full release history.
 - Florence-2 nodes trace to [kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2); extended here for Sage Attention 3 and Transformers 5.x, then integrated under `nodes/florence2/` (see **Upstream and integration** above)
 - ControlAltAI — see **[ControlAltAI nodes](#controlaltai-nodes)** (upstream MIT)
 - CCSR nodes trace to [kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR); extended here for the latest ComfyUI environment and Python 3.13, then integrated under `nodes/CCSR/` (see **Upstream and integration** above)
+- Use Everywhere nodes trace to [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere); updated here for modern ComfyUI frontend compatibility (1.52.7+) and integrated under `nodes/everywhere/` and `js/everywhere/` (see **[Use Everywhere nodes](#use-everywhere-nodes)** above)
 
 ## License
 
@@ -408,3 +431,4 @@ See [Changelog](md/CHANGELOG.md) for the full release history.
 - Florence-2 code under `nodes/florence2/` is derived from [kijai/ComfyUI-Florence2](https://github.com/kijai/ComfyUI-Florence2) and is licensed under the **MIT License**; see `nodes/florence2/LICENSE` for the full text and copyright notice for that subtree.
 - ControlAltAI code under `nodes/controlaltai/` — **MIT License** (see [ControlAltAI nodes](#controlaltai-nodes))
 - CCSR code under `nodes/CCSR/` is derived from [kijai/ComfyUI-CCSR](https://github.com/kijai/ComfyUI-CCSR) (which is based on the original [csslc/CCSR](https://github.com/csslc/CCSR) Apache-2.0 implementation).
+- Use Everywhere code under `nodes/everywhere/` and `js/everywhere/` is derived from [chrisgoringe/cg-use-everywhere](https://github.com/chrisgoringe/cg-use-everywhere).
